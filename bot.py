@@ -4,19 +4,16 @@ import time
 import random
 import logging
 
-# import db
-
 from discord import option
 from dotenv import load_dotenv
 
-# Bot initialization.
+# Инициализация бота.
 bot = discord.Bot(intents=discord.Intents.all(), activity=discord.Game(name="with numbers."))
 
-# Settings initialization.
+# Подтягивание информации из .env.
 load_dotenv()
-db_user = os.getenv('db_user')
-db_pass = os.getenv('db_pass')
 bot_key = os.getenv('bot_key')
+owner_id = os.getenv('owner_id')
 guild_ids = list(map(int, os.getenv('servers').split(",")))
 
 logging.basicConfig(level=logging.INFO, 
@@ -27,12 +24,9 @@ logging.basicConfig(level=logging.INFO,
                         logging.StreamHandler()
                     ])
 
-cock_suckers = []
-
 
 @bot.event
 async def on_ready():
-    # db.init()
     cogs_list = [
         'music',
         'coalition'
@@ -60,10 +54,10 @@ async def on_message(message):
         logging.info('------')
 
 
-@bot.slash_command(name="say", description="Команда для админов и хороших мальчиков.")
-@option("file", description="Картин очка или видо сос", required=False)
+@bot.slash_command(name="say", description="Команда для владельца, позволяет отправить сообщение от имени бота.") # ID владельца подтягивается из .env
+@option("file", description="Дополнительный файл к сообщению.", required=False)
 async def _say(ctx, args, file):
-    if ctx.author.id == 118360826485669893:
+    if ctx.author.id == owner_id:
         message = ""
         for piece in args:
             message += str(piece)
@@ -72,8 +66,6 @@ async def _say(ctx, args, file):
             await ctx.send(message, file=discord.File("images\\" + file))
         else:
             await ctx.send(message)
-    else:
-        await ctx.respond('Маленький еще такими глупостями заниматься. :weirdChamp:')
 
 
 @bot.slash_command(name="roll", description="Кидает кубик от 1 до значения аргумента.")
@@ -134,18 +126,18 @@ async def _flip(ctx):
 
     message = "Счастье и горе — это две стороны монеты, которую жизнь периодически ставит на ребро...\n"
 
-    if num == 0:
+    if num:
         message += ctx.author.mention + ", выпал орел!"
-    elif num == 1:
+    elif num:
         message += ctx.author.mention + ", выпала режка!"
     else:
-        message += "Пиздец!"
+        message += "Выпало... ребро?"
 
     await ctx.respond(message)
 
 
-@bot.slash_command(name="mute", guild_ids=guild_ids, description="Позакрывали пиздаки.")
-@option("switch", description="Че мутим?", choices=["on", "off"])
+@bot.slash_command(name="mute", guild_ids=guild_ids, description="Упралвение микрофоном всех пользователей в текущем голосовом канале.")
+@option("switch", description="Вкл/Выкл?", choices=["on", "off"])
 async def _mute(ctx, switch):
     if ctx.author.guild_permissions.administrator:
         channel = ctx.author.voice.channel

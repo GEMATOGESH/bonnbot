@@ -46,6 +46,7 @@ class Music(commands.Cog):
         vk_password = os.getenv('vk_password')
         self.cookie = os.getenv('cookie')
         self.ffmpeg_path = os.getenv('ffmpeg_path')
+        self.valid_channel_id = os.getenv('valid_channel_id')
         
         if vk_login is not None and vk_password is not None:
             vk_session = vk_api.VkApi(
@@ -65,7 +66,7 @@ class Music(commands.Cog):
 
 
     async def _is_valid_channel(self, ctx):
-        if ctx.channel.id == 502142352144728064:
+        if ctx.channel.id == self.valid_channel_id:
             return True
         else:
             await ctx.respond("Не тот канал.")
@@ -83,7 +84,7 @@ class Music(commands.Cog):
 
 
     async def _msg(self, reason, track_id):
-        channel = self.bot.get_channel(502142352144728064)
+        channel = self.bot.get_channel(self.valid_channel_id)
         embed = None
 
         if reason == "order":
@@ -226,7 +227,7 @@ class Music(commands.Cog):
             URL = arr['url']
         except Exception as err:
             logging.error(err)
-            channel = self.bot.get_channel(502142352144728064)
+            channel = self.bot.get_channel(self.valid_channel_id)
             await channel.send("Я не нашел :c")
             return False
 
@@ -255,7 +256,7 @@ class Music(commands.Cog):
 
 
     async def _play_youtube(self, ctx, music, index):
-        channel = self.bot.get_channel(502142352144728064)
+        channel = self.bot.get_channel(self.valid_channel_id)
 
         ydl_opts = {'format': 'bestaudio', 'cookiefile': self.cookie, 'cachedir': False}
 
@@ -283,7 +284,7 @@ class Music(commands.Cog):
 
         # Playlist
         elif ('playlist' in music) or ('&list' in music):
-            await ctx.respond("Я рот плейлистов шатал, дай секунду...")
+            await ctx.respond("Загружаю плейлист, дай секунду...")
             checker = int(index)
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -326,7 +327,7 @@ class Music(commands.Cog):
 
     def _play_next(self, ctx):
         voice = ctx.guild.voice_client
-        channel = self.bot.get_channel(502142352144728064)
+        channel = self.bot.get_channel(self.valid_channel_id)
 
         if len(self.music_queue) > 1 or self.repeat_one or self.seeking["is_seeking"]:
             if voice is not None:
