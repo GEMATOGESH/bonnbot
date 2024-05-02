@@ -11,9 +11,8 @@ import logging
 from vk_api import audio
 from discord import option
 from discord.ext import commands
-from datetime import date
-from datetime import datetime
-from datetime import timedelta
+from discord.commands.context import ApplicationContext
+from datetime import date, datetime, timedelta
 from youtubesearchpython import *
 from dotenv import load_dotenv
 
@@ -65,11 +64,11 @@ class Music(commands.Cog):
                 logging.warning("Not connected to VK. Error: ", err)
 
 
-    async def _is_valid_channel(self, ctx: discord.commands.context.ApplicationContext):
+    async def _is_valid_channel(self, ctx: ApplicationContext):
         if ctx.channel.id == self.valid_channel_id:
             return True
         else:
-            await ctx.respond("Не тот канал.")
+            await ctx.respond("Не тот канал.", ephemeral=True)
             return False
 
 
@@ -104,46 +103,27 @@ class Music(commands.Cog):
 
 
     def _start_message(self):
-        checker = random.randint(1, 18)
-        message = ""
-        if checker == 1:
-            message += 'Ща все будет...'
-        elif checker == 2:
-            message += 'Пиво для ушей пошло...'
-        elif checker == 3:
-            message += 'Ищу...'
-        elif checker == 4:
-            message += 'Запускаю...'
-        elif checker == 5:
-            message += 'В процессе...'
-        elif checker == 6:
-            message += 'Её? Ладно...'
-        elif checker == 7:
-            message += 'Ну ты дурной...'
-        elif checker == 8:
-            message += 'Обрабатываю...'
-        elif checker == 9:
-            message += 'Ща закину...'
-        elif checker == 10:
-            message += 'Бананы в уши, ща музон пойдёт...'
-        elif checker == 11:
-            message += 'Секунду...'
-        elif checker == 12:
-            message += 'Зацени милкше... микстейп...'
-        elif checker == 13:
-            message += 'Бонан сука...'
-        elif checker == 14:
-            message += 'Я не бармен, но заказ принял...'
-        elif checker == 15:
-            message += 'Ща классика заебашит...'
-        elif checker == 16:
-            message += "Let's break the rules! And really put our backs into it! Max out, pursue it!.."
-        elif checker == 17:
-            message += "Чел, сейчас бы слушать это в " + \
-                str(date.today().year) + " году..."
-        elif checker == 18:
-            message += "У тебя настолько плохой вкус что ты слушаешь ЭТО?.."
-        return message
+        message = []
+        message.append('Ща все будет...')
+        message.append('Пиво для ушей пошло...')
+        message.append('Ищу...')
+        message.append('Запускаю...')
+        message.append('В процессе...')
+        message.append('Её? Ладно...')
+        message.append('Ну ты дурной...')
+        message.append('Обрабатываю...')
+        message.append('Ща закину...')
+        message.append('Бананы в уши, ща музон пойдёт...')
+        message.append('Секунду...')
+        message.append('Зацени милкше... микстейп...')
+        message.append('Бонан сука...')
+        message.append('Я не бармен, но заказ принял...')
+        message.append('Ща классика заебашит...')
+        message.append("Let's break the rules! And really put our backs into it! Max out, pursue it!..")
+        message.append("Чел, сейчас бы слушать это в " + str(date.today().year) + " году...")
+        message.append("У тебя настолько плохой вкус что ты слушаешь ЭТО?..")
+        return message.choice()
+
 
     def _get_timestamp(self, is_seeking=False):
         try:
@@ -166,19 +146,19 @@ class Music(commands.Cog):
     @option("platform", description="Ссылка на трек или название.", choices=["vk", "youtube"])
     @option("track", description="Ссылка на трек или название, в случае ВК - название.")
     @option("index", description="Номер композиции в результатах поиска, по стандарту - 1.", required=False, default=1)
-    async def _play(self, ctx: discord.commands.context.ApplicationContext, platform: str, track: str, index: int):
+    async def _play(self, ctx: ApplicationContext, platform: str, track: str, index: int):
         result = await self._is_valid_channel(ctx)
         if result:
             # Basic check.
             if ctx.author.voice is None:
-                await ctx.respond(ctx.author.mention + ", зайди в голосовой канал.")
+                await ctx.respond(ctx.author.mention + ", зайди в голосовой канал.", ephemeral=True)
                 return
 
             voice_client = discord.utils.get(
                 ctx.bot.voice_clients, guild=ctx.guild)
             if voice_client is not None:
                 if voice_client.channel != ctx.author.voice.channel:
-                    await ctx.respond("Я уже играю в другом канале.")
+                    await ctx.respond("Я уже играю в другом канале.", ephemeral=True)
                     return
 
             # Platform loading.
@@ -188,7 +168,7 @@ class Music(commands.Cog):
                     if not result:
                         return
                 else:
-                    await ctx.respond("Музыка с ВК временно не поддерживается, пользуйтесь ютубом.")
+                    await ctx.respond("Музыка с ВК временно (а может и не временно) не поддерживается, пользуйтесь ютубом.")
                     return
 
             if platform == "youtube":
@@ -216,7 +196,7 @@ class Music(commands.Cog):
                 await self._msg("playing", 0)
 
 
-    async def _play_vk(self, ctx: discord.commands.context.ApplicationContext, music: str, index: int):
+    async def _play_vk(self, ctx: ApplicationContext, music: str, index: int):
         await ctx.respond(self._start_message())
 
         mas = self.vk_audio.search(music, 1, int(index) - 1)
@@ -228,14 +208,14 @@ class Music(commands.Cog):
         except Exception as err:
             logging.error(err)
             channel = self.bot.get_channel(self.valid_channel_id)
-            await channel.send("Я не нашел :c")
+            await channel.send("Я не нашел, попробуйте перезапустить бота.")
             return False
 
         title = "Placeholder"
         try:
             title = arr['artist'] + " - " + arr['title']
         except:
-            logging.warning("Я не нашел название!!!!")
+            logging.warning("Couldn't find title for " + music)
 
         thumb = None
         try:
@@ -243,6 +223,7 @@ class Music(commands.Cog):
         except:
             thumb = "https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/VK.com-logo.svg/192px-VK.com-logo" \
                 ".svg.png "
+            
         if thumb is None:
             thumb = "https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/VK.com-logo.svg/192px-VK.com-logo" \
                 ".svg.png "
@@ -255,7 +236,7 @@ class Music(commands.Cog):
         return True
 
 
-    async def _play_youtube(self, ctx: discord.commands.context.ApplicationContext, music: str, index: int):
+    async def _play_youtube(self, ctx: ApplicationContext, music: str, index: int):
         channel = self.bot.get_channel(self.valid_channel_id)
 
         ydl_opts = {'format': 'bestaudio', 'cookiefile': self.cookie, 'cachedir': False}
@@ -276,15 +257,14 @@ class Music(commands.Cog):
             videosSearch = VideosSearch(music, limit=index)
             music = videosSearch.result()['result'][index - 1]['link']
             if music == "":
-                ctx.respond(
-                    "Ошибка при поиске. Возможно такой композиции не существует.")
+                ctx.respond("Ошибка при поиске. Возможно такой композиции не существует.")
                 return False
 
             music = 'https://youtu.be/' + music[32:]
 
         # Playlist
         elif ('playlist' in music) or ('&list' in music):
-            await ctx.respond("Загружаю плейлист, дай секунду...")
+            await ctx.respond("Загружаю плейлист, дай секунду...", ephemeral=True)
             checker = int(index)
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -305,7 +285,7 @@ class Music(commands.Cog):
                         track_id = len(self.music_queue) - 1
                         await self._msg("order", track_id)
 
-            await channel.send("Загрузка плейлиста завершена.")
+            await channel.send("Загрузка плейлиста завершена.", ephemeral=True)
             return True
 
         # Hyperlink
@@ -325,7 +305,7 @@ class Music(commands.Cog):
         return True
 
 
-    def _play_next(self, ctx: discord.commands.context.ApplicationContext):
+    def _play_next(self, ctx: ApplicationContext):
         voice = ctx.guild.voice_client
         channel = self.bot.get_channel(self.valid_channel_id)
 
@@ -371,7 +351,7 @@ class Music(commands.Cog):
 
 
     @commands.slash_command(name="stop", guild_ids=guild_ids, description="Останавливает музыку и покидает канал.")
-    async def _stop(self, ctx: discord.commands.context.ApplicationContext):
+    async def _stop(self, ctx: ApplicationContext):
         result = await self._is_valid_channel(ctx)
         if result:
             voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
@@ -379,7 +359,7 @@ class Music(commands.Cog):
                 voice_channel = ctx.guild.voice_client
 
                 if voice_channel.channel != ctx.author.voice.channel:
-                    await ctx.respond("Я играю в другом канале.")
+                    await ctx.respond("Я играю в другом канале.", ephemeral=True)
                     return
 
                 await voice_channel.disconnect()
@@ -397,7 +377,7 @@ class Music(commands.Cog):
 
 
     @commands.slash_command(name="shuffle", guild_ids=guild_ids, description="Перемешивает музыкальную очередь.")
-    async def _shuffle(self, ctx: discord.commands.context.ApplicationContext):
+    async def _shuffle(self, ctx: ApplicationContext):
         result = await self._is_valid_channel(ctx)
         if result:
             voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
@@ -408,7 +388,7 @@ class Music(commands.Cog):
 
                 voice_channel = ctx.guild.voice_client
                 if voice_channel.channel != ctx.author.voice.channel:
-                    await ctx.respond("Я играю в другом канале.")
+                    await ctx.respond("Я играю в другом канале.", ephemeral=True)
                     return
 
                 backup = self.music_queue[0]
@@ -418,11 +398,11 @@ class Music(commands.Cog):
 
                 await ctx.respond("Успешно перемешано.")
             else:
-                await ctx.respond("Я даже не играю.")
+                await ctx.respond("Я даже не играю.", ephemeral=True)
 
 
     @commands.slash_command(name="skip", guild_ids=guild_ids, description="Пропускает текущий трек.")
-    async def skip(self, ctx: discord.commands.context.ApplicationContext):
+    async def skip(self, ctx: ApplicationContext):
         result = await self._is_valid_channel(ctx)
         if result:
             voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
@@ -430,7 +410,7 @@ class Music(commands.Cog):
                 voice_channel = ctx.guild.voice_client
 
                 if voice_channel.channel != ctx.author.voice.channel:
-                    await ctx.respond("Я играю в другом канале.")
+                    await ctx.respond("Я играю в другом канале.", ephemeral=True)
                     return
 
                 embed = discord.Embed(title="Пропущено", color=0x9d00ff)
@@ -449,21 +429,21 @@ class Music(commands.Cog):
                 voice.stop()
                 await ctx.respond(embed=embed)
             else:
-                await ctx.respond("Я даже не играю.")
+                await ctx.respond("Я даже не играю.", ephemeral=True)
 
 
     @commands.slash_command(name="queue", guild_ids=guild_ids, description="Текущая музыкальная очередь.")
     @option("page", int, description="Номер страницы очереди.", required=False, default=0)
-    async def _queue(self, ctx: discord.commands.context.ApplicationContext, page: int):
+    async def _queue(self, ctx: ApplicationContext, page: int):
         result = await self._is_valid_channel(ctx)
         if result:
             if len(self.music_queue) == 1:
-                await ctx.respond("Очередь пуста.")
+                await ctx.respond("Очередь пуста.", ephemeral=True)
                 return
 
             num_of_pages = math.ceil(len(self.music_queue) / 10)
             if page > num_of_pages or page < 0:
-                await ctx.respond("Стольких страниц нет.")
+                await ctx.respond("Стольких страниц нет.", ephemeral=True)
                 return
 
             start = 0
@@ -489,7 +469,7 @@ class Music(commands.Cog):
 
     @commands.slash_command(name="loop", guild_ids=guild_ids, description="Включает или выключает повтор на боте.")
     @option("choice", description="Повторять всю очередь или только текущий трек? Может вообще выключить?", choices=["one", "all", "off"])
-    async def _loop(self, ctx: discord.commands.context.ApplicationContext, choice: str):
+    async def _loop(self, ctx: ApplicationContext, choice: str):
         result = await self._is_valid_channel(ctx)
         if result:
             voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
@@ -497,7 +477,7 @@ class Music(commands.Cog):
                 voice_channel = ctx.guild.voice_client
 
                 if voice_channel.channel != ctx.author.voice.channel:
-                    await ctx.respond("Нельзя помешать вечеринке не участвуя в ней.")
+                    await ctx.respond("Нельзя помешать вечеринке не участвуя в ней.", ephemeral=True)
                     return
 
                 if choice == "all":
@@ -516,12 +496,12 @@ class Music(commands.Cog):
                     await ctx.respond("Выключил повтор.")
 
                 else:
-                    await ctx.respond("Не выбор тоже выбор.")
+                    await ctx.respond("Отсутствие выбора тоже выбор.")
 
 
     @commands.slash_command(name="remove", guild_ids=guild_ids, description="Удаляет трек под заданным номером из очереди.")
     @option("track_id", description="Номер трека в очереди")
-    async def _remove(self, ctx: discord.commands.context.ApplicationContext, track_id: int):
+    async def _remove(self, ctx: ApplicationContext, track_id: int):
         result = await self._is_valid_channel(ctx)
         if result:
             voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
@@ -529,12 +509,12 @@ class Music(commands.Cog):
 
                 voice_channel = ctx.guild.voice_client
                 if voice_channel.channel != ctx.author.voice.channel:
-                    await ctx.respond("Нельзя помешать вечеринке не участвуя в ней.")
+                    await ctx.respond("Нельзя помешать вечеринке не участвуя в ней.", ephemeral=True)
                     return
 
                 track_id = int(track_id)
                 if (track_id > len(self.music_queue)) or (track_id < 1):
-                    await ctx.respond("Трека под этим номером нет.")
+                    await ctx.respond("Трека под этим номером нет.", ephemeral=True)
                     return
 
                 if (track_id == len(self.music_queue)) and (track_id == 1):
@@ -565,12 +545,12 @@ class Music(commands.Cog):
                     del self.music_queue[track_id]
 
             else:
-                await ctx.respond("Я даже не играю.")
+                await ctx.respond("Я даже не играю.", ephemeral=True)
 
 
     @commands.slash_command(name="seek", guild_ids=guild_ids, description="Перематывает текущий трек.")
     @option("timestamp", description="Интересующее время в формате Ч:ММ:СС")
-    async def _seek(self, ctx: discord.commands.context.ApplicationContext, timestamp: str):
+    async def _seek(self, ctx: ApplicationContext, timestamp: str):
         result = await self._is_valid_channel(ctx)
         if result:
             voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
@@ -578,13 +558,13 @@ class Music(commands.Cog):
                 voice_channel = ctx.guild.voice_client
 
                 if voice_channel.channel != ctx.author.voice.channel:
-                    await ctx.respond("Нельзя помешать вечеринке не участвуя в ней.")
+                    await ctx.respond("Нельзя помешать вечеринке не участвуя в ней.", ephemeral=True)
                     return
 
                 try:
                     seek_time = datetime.strptime(timestamp, '%H:%M:%S')
                 except Exception:
-                    await ctx.respond("В школе формат записи времени не учили?")
+                    await ctx.respond("В школе формат записи времени не учили?", ephemeral=True)
                     return
 
                 self.seeking["is_seeking"] = True
@@ -599,11 +579,11 @@ class Music(commands.Cog):
                 await ctx.respond(embed=embed)
                 voice.stop()
             else:
-                await ctx.respond("Я даже не играю.")
+                await ctx.respond("Я даже не играю.", ephemeral=True)
 
 
     @commands.slash_command(name="nowplaying", guild_ids=guild_ids, description="Отображает текущий трек.")
-    async def _nowplaying(self, ctx: discord.commands.context.ApplicationContext):
+    async def _nowplaying(self, ctx: ApplicationContext):
         result = await self._is_valid_channel(ctx)
         if result:
             voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
@@ -611,7 +591,7 @@ class Music(commands.Cog):
                 voice_channel = ctx.guild.voice_client
 
                 if voice_channel.channel != ctx.author.voice.channel:
-                    await ctx.respond("Нельзя помешать вечеринке не  участвуя в ней.")
+                    await ctx.respond("Нельзя помешать вечеринке не  участвуя в ней.", ephemeral=True)
                     return
 
                 embed = discord.Embed(title="Сейчас играет", color=0xf59e42)
@@ -622,7 +602,7 @@ class Music(commands.Cog):
 
                 await ctx.respond(embed=embed)
             else:
-                await ctx.respond("Я даже не играю.")
+                await ctx.respond("Я даже не играю.", ephemeral=True)
                 
 
 class MusicView(discord.ui.View):
@@ -639,11 +619,11 @@ class MusicView(discord.ui.View):
             voice_channel = interaction.guild.voice_client
 
             if interaction.user.voice is None:
-                await interaction.response.send_message("Не твое - не трогай.")
+                await interaction.response.send_message("Не твое - не трогай.", ephemeral=True)
                 return
 
             if voice_channel.channel != interaction.user.voice.channel:
-                await interaction.response.send_message("Я играю в другом канале.")
+                await interaction.response.send_message("Я играю в другом канале.", ephemeral=True)
                 return
 
             embed = discord.Embed(title="Остановлено", color=0xff0000)
@@ -661,7 +641,7 @@ class MusicView(discord.ui.View):
 
             await self.message.edit(view=None)
         else:
-            await interaction.response.send_message("Я даже не играю.")
+            await interaction.response.send_message("Я даже не играю.", ephemeral=True)
 
 
     @discord.ui.button(style=discord.ButtonStyle.primary, emoji="⏭️")
@@ -671,11 +651,11 @@ class MusicView(discord.ui.View):
             voice_channel = interaction.guild.voice_client
 
             if interaction.user.voice is None:
-                await interaction.response.send_message("Не твое - не трогай.")
+                await interaction.response.send_message("Не твое - не трогай.", ephemeral=True)
                 return
 
             if voice_channel.channel != interaction.user.voice.channel:
-                await interaction.response.send_message("Я играю в другом канале.")
+                await interaction.response.send_message("Я играю в другом канале.", ephemeral=True)
                 return
 
             embed = discord.Embed(title="Пропущено", color=0x9d00ff)
@@ -696,7 +676,7 @@ class MusicView(discord.ui.View):
 
             await self.message.edit(view=None)
         else:
-            await interaction.response.send_message("Я даже не играю.")
+            await interaction.response.send_message("Я даже не играю.", ephemeral=True)
 
 
     @discord.ui.button(style=discord.ButtonStyle.primary, emoji="🔀")
@@ -704,17 +684,17 @@ class MusicView(discord.ui.View):
         voice = discord.utils.get(self.music.bot.voice_clients, guild=interaction.guild)
         if voice is not None:
             if len(self.music.music_queue) == 1:
-                await interaction.response.send_message("Нечего мешать.")
+                await interaction.response.send_message("Нечего мешать.", ephemeral=True)
                 return
 
             voice_channel = interaction.guild.voice_client
 
             if interaction.user.voice is None:
-                await interaction.response.send_message("Не твое - не трогай.")
+                await interaction.response.send_message("Не твое - не трогай.", ephemeral=True)
                 return
 
             if voice_channel.channel != interaction.user.voice.channel:
-                await interaction.response.send_message("Я играю в другом канале.")
+                await interaction.response.send_message("Я играю в другом канале.", ephemeral=True)
                 return
 
             backup = self.music.music_queue[0]
@@ -722,9 +702,9 @@ class MusicView(discord.ui.View):
             random.shuffle(self.music.music_queue)
             self.music.music_queue.insert(0, backup)
 
-            await interaction.response.send_message("Успешно перемешано.")
+            await interaction.response.send_message("Успешно перемешано.", ephemeral=True)
         else:
-            await interaction.response.send_message("Я даже не играю.")
+            await interaction.response.send_message("Я даже не играю.", ephemeral=True)
 
 
     @discord.ui.button(style=discord.ButtonStyle.primary, emoji="🔁")
@@ -734,11 +714,11 @@ class MusicView(discord.ui.View):
             voice_channel = interaction.guild.voice_client
 
             if interaction.user.voice is None:
-                await interaction.response.send_message("Не твое - не трогай.")
+                await interaction.response.send_message("Не твое - не трогай.", ephemeral=True)
                 return
 
             if voice_channel.channel != interaction.user.voice.channel:
-                await interaction.response.send_message("Нельзя помешать вечеринке не участвуя в ней.")
+                await interaction.response.send_message("Нельзя помешать вечеринке не участвуя в ней.", ephemeral=True)
                 return
 
             if not self.music.repeat_all:
@@ -749,7 +729,7 @@ class MusicView(discord.ui.View):
                 self.music.repeat_all = False
                 await interaction.response.send_message("Выключил повтор всей очереди.")
         else:
-            await interaction.response.send_message("Я даже не играю.")
+            await interaction.response.send_message("Я даже не играю.", ephemeral=True)
 
 
     @discord.ui.button(style=discord.ButtonStyle.primary, emoji="🔂")
@@ -759,11 +739,11 @@ class MusicView(discord.ui.View):
             voice_channel = interaction.guild.voice_client
 
             if interaction.user.voice is None:
-                await interaction.response.send_message("Не твое - не трогай.")
+                await interaction.response.send_message("Не твое - не трогай.", ephemeral=True)
                 return
 
             if voice_channel.channel != interaction.user.voice.channel:
-                await interaction.response.send_message("Нельзя помешать вечеринке не участвуя в ней.")
+                await interaction.response.send_message("Нельзя помешать вечеринке не участвуя в ней.", ephemeral=True)
                 return
 
             if not self.music.repeat_one:
@@ -774,4 +754,4 @@ class MusicView(discord.ui.View):
                 self.music.repeat_one = False
                 await interaction.response.send_message("Выключил повтор трека.")
         else:
-            await interaction.response.send_message("Я даже не играю.")
+            await interaction.response.send_message("Я даже не играю.", ephemeral=True)
