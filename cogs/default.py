@@ -22,7 +22,7 @@ class Default(commands.Cog):
 
     @commands.slash_command(name="roll", description="Кидает кубик от 1 до значения аргумента.")
     @option("arg", int, description="До скольки?")
-    async def _roll(ctx: ApplicationContext, arg: int):
+    async def _roll(self, ctx: ApplicationContext, arg: int):
         num = random.randint(1, arg)
         message = "Все мы игрушки в руках судьбы, <...> и теперь наше будущее зависит от того, как лягут игральные кости."\
             "Не дрогнет ли рука провидения?... \n"
@@ -69,7 +69,7 @@ class Default(commands.Cog):
 
 
     @commands.slash_command(name="flip", description="Подкидывает монетку.")
-    async def _flip(ctx: ApplicationContext):
+    async def _flip(self, ctx: ApplicationContext):
         num = random.randint(0, 1)
 
         message = "Счастье и горе — это две стороны монеты, которую жизнь периодически ставит на ребро...\n"
