@@ -28,42 +28,43 @@ class Default(commands.Cog):
             "Не дрогнет ли рука провидения?... \n"
         message += "Выпало " + str(num)
 
-        if num == 1:
-            message += ". Кол!"
-        elif num == 3:
-            message += ". Трое!"
-        elif num == 10:
-            message += ". Бычий глаз!"
-        elif num == 11:
-            message += ". Барабанные палочки!"
-        elif num == 12:
-            message += ". Дюжина!"
-        elif num == 13:
-            message += ". Чертова дюжина!"
-        elif num == 18:
-            message += ". В первый раз!"
-        elif num == 22:
-            message += ". Утята!"
-        elif num == 25:
-            message += ". Опять 25!"
-        elif num == 44:
-            message += ". Стульчики!"
-        elif num == 50:
-            message += ". Полста!"
-        elif num == 55:
-            message += ". Перчатки!"
-        elif num == 66:
-            message += ". Валенки!"
-        elif num == 69:
-            message += ". Nice!"
-        elif num == 77:
-            message += ". Топорики!"
-        elif num == 88:
-            message += ". Бабушка!"
-        elif num == 89:
-            message += ". Дедушкин сосед!"
-        elif num == 90:
-            message += ". Дедушка!"
+        match num:
+            case 1:
+                message += ". Кол!"
+            case 3:
+                message += ". Трое!"
+            case 10:
+                message += ". Бычий глаз!"
+            case 11:
+                message += ". Барабанные палочки!"
+            case 12:
+                message += ". Дюжина!"
+            case 13:
+                message += ". Чертова дюжина!"
+            case 18:
+                message += ". В первый раз!"
+            case 22:
+                message += ". Утята!"
+            case 25:
+                message += ". Опять 25!"
+            case 44:
+                message += ". Стульчики!"
+            case 50:
+                message += ". Полста!"
+            case 55:
+                message += ". Перчатки!"
+            case 66:
+                message += ". Валенки!"
+            case 69:
+                message += ". Nice!"
+            case 77:
+                message += ". Топорики!"
+            case 88:
+                message += ". Бабушка!"
+            case 89:
+                message += ". Дедушкин сосед!"
+            case 90:
+                message += ". Дедушка!"
 
         await ctx.respond(message)
 
