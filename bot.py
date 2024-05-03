@@ -64,8 +64,8 @@ async def on_message(message: discord.Message):
     member = message.author
             
     if not member.bot:
-        logging.info(str(member) + " [" + str(message.channel.name) "]:" +\
-                      str(message.content))
+        logging.info(str(member) + " [" + str(message.channel.name) +\
+                      "]:" + str(message.content))
 
 
 @bot.event
