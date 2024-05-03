@@ -10,18 +10,105 @@ import logging
 
 from vk_api import audio
 from discord import option
+from discord import ApplicationContext
 from discord.ext import commands
-from discord.commands.context import ApplicationContext
 from datetime import date, datetime, timedelta
 from youtubesearchpython import *
 from dotenv import load_dotenv
 
 
 def setup(bot: discord.bot.Bot): 
+    """Необходимая функция для подключения когов
+
+    Параметры
+    ---------
+    bot : discord.Bot
+        Дискордовский бот
+
+    ЧтоЗа: https://docs.pycord.dev/en/stable/api/clients.html#discord.Bot.load_extension
+    """
+
     bot.add_cog(Music(bot)) 
 
 
 class Music(commands.Cog):
+    """
+    Класс коги с музыкальными командами
+
+    Атрибуты
+    --------
+    bot : discord.Bot
+        Дискордовский бот
+    guild_ids : list
+        Список идентификаторов серверов, к которым подключен бот
+    vk_audio : VkAudio
+        Объект VkAudio для поиска и получения ссылок на аудиозаписи в
+        социальной сети ВКонтакте
+    is_vk_connected : bool
+        Подключен ли бот к ВКонтаке
+    music_queue : list
+        Текущая музыкальная очередь
+    seeking : set
+        Информация, используемая при перемотке трека
+    repeat_all : bool
+        Включен ли повтор всей очереди
+    repeat_one : bool
+        Включен ли повтор текущего трека
+    current_view : MusicView
+        Текущий набор кнопок под сообщением
+    cookie : str
+        Путь к файлу куки YouTube
+    ffmpeg_path : str
+        Путь к ffmpeg.exe
+    valid_channel_id : str
+        Канал, в котором доступны для использования музыкальные команды
+
+    Методы
+    ------
+    _captcha_handler(self, captcha)
+        Обработчик капчи для подключения к ВКонтакте
+    _two_factor(self)
+        Обработчик двухфакторной аутентификации для подключения к ВКонтакте
+    _is_valid_channel(self, ctx: ApplicationContext)
+        Проверка, используется ли нужный текстовый канал для вызова
+        музыкальных команд
+    _is_playing(self, ctx: ApplicationContext)
+        Проверка играет ли бот в другом голосовом канале
+    _is_same_channel(ctx: ApplicationContext)
+        Проверка сидит ли пользователь в том же голосовом канале, где
+        играет бот
+    _msg(self, reason: str, track_id: int)
+        Отправка сообщения ботом
+    _start_message(self)
+        Стартовое сообщение бота, при запуске музыкальных команд
+    _get_timestamp(self, is_seeking=False)
+        Получение отметки времени текущего трека
+    _play(self, ctx: ApplicationContext, platform: str, track: str, index: int)
+        Запуск проигрывания музыки
+    _play_vk(self, ctx: ApplicationContext, music: str, index: int)
+        Проигрывание музыки из ВКонтакте
+    _play_youtube(self, ctx: ApplicationContext, music: str, index: int)
+        Проигрывание музыки с YouTube
+    _play_next(self, ctx: ApplicationContext)
+        Запуск проигрывания следующего трека из музыкальной очереди
+    _stop(self, ctx: ApplicationContext)
+        Остановка проигрывания музыки
+    _shuffle(self, ctx: ApplicationContext)
+        Рандомизация позиций треков музыкальной очереди
+    _skip(self, ctx: ApplicationContext)
+        Пропуск музыкального трека
+    _queue(self, ctx: ApplicationContext, page: int)
+        Отображение музыкальной очереди
+    _loop(self, ctx: ApplicationContext, choice: str)
+        Включение или выключение повтора трека/очереди
+    _remove(self, ctx: ApplicationContext, track_id: int)
+        Удаление трека из музыкальной очереди
+    _seek(self, ctx: ApplicationContext, timestamp: str)
+        Перемотка трека
+    _nowplaying(self, ctx: ApplicationContext)
+        Отображение информации о текущем треке
+    """
+
     bot = None
     guild_ids = []
     vk_audio = None
@@ -35,6 +122,15 @@ class Music(commands.Cog):
 
 
     def __init__(self, bot: discord.bot.Bot):
+        """
+        Параметры
+        ---------
+        bot : discord.bot.Bot
+            Дискордовский бот
+
+        Также конектится к ВКонтакте, для последующего поиска музыки
+        """
+
         self.bot = bot
         
         for guild in bot.guilds:
@@ -66,16 +162,50 @@ class Music(commands.Cog):
 
 
     def _captcha_handler(self, captcha):
+        """Обработчик капчи ВКонтакте
+
+        Параметры
+        ---------
+        captcha : str
+            Ссылка на капчу
+
+        Взято с: https://github.com/python273/vk_api/blob/master/examples/captcha_handle.py
+        """
+
         key = input("Enter captcha code {0}: ".format(captcha.get_url())).strip()
         return captcha.try_again(key)
 
 
     def _two_factor(self):
+        """Обработчик двухфакторной аутентификации ВКонтакте
+
+        Возвращает
+        ----------
+        tuple[str, bool]
+            Код двухфакторной аутентификации и True, чтобы устройство
+            было сохранено в список доверенных
+        """
+
         code = input('VK code: ')
         return code, True
 
 
-    async def _is_valid_channel(self, ctx: ApplicationContext):
+    async def _is_valid_channel(self, ctx: ApplicationContext) -> bool:
+        """Проверяет, используется ли верный текстовый канал для 
+        выполнения музыкальных команд, если канал неверный - сообщает
+        это пользователю
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+
+        Возвращает
+        ----------
+        bool
+            Верный ли канал
+        """
+
         if ctx.channel.id == self.valid_channel_id:
             return True
         else:
@@ -83,7 +213,21 @@ class Music(commands.Cog):
             return False
         
     
-    async def _is_playing(self, ctx: ApplicationContext):
+    async def _is_playing(self, ctx: ApplicationContext) -> bool:
+        """Проверяет играет ли бот в голосовом канале.
+        Если бот не играет - сообщает об этом пользователю.
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+
+        Возвращает
+        ----------
+        bool
+            Играет ли бот
+        """
+
         voice_client = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
         if voice_client is not None:
             return True
@@ -92,7 +236,22 @@ class Music(commands.Cog):
             return False
     
 
-    async def _is_same_channel(ctx: ApplicationContext):
+    async def _is_same_channel(ctx: ApplicationContext) -> bool:
+        """Проверяет играет ли бот в голосовом канале.
+        отличном от голового канала пользователя. Если канал отличен -
+        сообщает об этом пользователю
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+
+        Возвращает
+        ----------
+        bool
+            Играет ли бот в другом канале
+        """
+
         voice_client = ctx.guild.voice_client
         if voice_client.channel != ctx.author.voice.channel:
             await ctx.respond("Я играю в другом канале.", ephemeral=True)
@@ -102,6 +261,17 @@ class Music(commands.Cog):
 
 
     async def _msg(self, reason: str, track_id: int):
+        """Отправляет сообщение о заказе или запуске проигрывания трека
+
+        Параметры
+        ---------
+        reason : str
+            Причина вызова, от которого зависит название и привязка кнопок
+            к сообщению
+        track_id : int
+            Номер трека в очереди
+        """
+
         channel = self.bot.get_channel(self.valid_channel_id)
         embed = None
 
@@ -113,8 +283,9 @@ class Music(commands.Cog):
         embed.set_thumbnail(url=self.music_queue[track_id]["thumb"])
         embed.add_field(name=str(self.music_queue[track_id]["title"]), 
                         value="Продолжительность: ``[" + \
-                              str(self.music_queue[track_id]["duration"] + "]``\n" + "Заказал " +\
-                              self.music_queue[track_id]["user"]),
+                            str(self.music_queue[track_id]["duration"] +\
+                                   "]``\n" + "Заказал " +\
+                                   self.music_queue[track_id]["user"]),
                         inline=True)
 
         if reason == "order":
@@ -124,7 +295,15 @@ class Music(commands.Cog):
             await channel.send(embed=embed, view=self.current_view)
 
 
-    def _start_message(self):
+    def _start_message(self) -> str:
+        """Выбор сообщения, отправляемого при запуске проигрывания музыки
+
+        Возвращает
+        ----------
+        str
+            Текст сообщения
+        """
+
         message = []
         message.append('Ща все будет...')
         message.append('Пиво для ушей пошло...')
@@ -147,7 +326,20 @@ class Music(commands.Cog):
         return message.choice()
 
 
-    def _get_timestamp(self, is_seeking=False):
+    def _get_timestamp(self, is_seeking=False) -> str:
+        """Получение отметки времени играющего трека
+
+        Параметры
+        ---------
+        is_seeking : bool, optional
+            Вызвана ли функция из-за команды перемотки, by default False
+
+        Возвращает
+        ----------
+        str
+            Отметка времени
+        """
+
         try:
             now = datetime.now()
 
@@ -170,8 +362,21 @@ class Music(commands.Cog):
     @option("track", description="Ссылка на трек или название, в случае ВК - название.")
     @option("index", description="Номер композиции в результатах поиска, по стандарту - 1.", required=False, default=1)
     async def _play(self, ctx: ApplicationContext, platform: str, track: str, index: int):
+        """Запуск проигрывания трека
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+        platform : str
+            Платформа, где будет производится поиск трека
+        track : str
+            Название трека
+        index : int
+            Номер трека в результате поиска
+        """
+
         if self._is_valid_channel(ctx):
-            # Basic check.
             if ctx.author.voice is None:
                 await ctx.respond(ctx.author.mention + ", зайди в голосовой канал.", ephemeral=True)
                 return
@@ -182,7 +387,6 @@ class Music(commands.Cog):
                 if not await self._is_same_channel(ctx):
                     return
 
-            # Platform loading.
             if platform == "vk":
                 if self.is_vk_connected:
                     result = await self._play_vk(ctx, track, index)
@@ -197,7 +401,6 @@ class Music(commands.Cog):
                 if not result:
                     return
 
-            # Start playing if not started already.
             if discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild) is None:
                 vc = ctx.author.voice.channel
                 await vc.connect()
@@ -217,10 +420,28 @@ class Music(commands.Cog):
                 await self._msg("playing", 0)
 
 
-    async def _play_vk(self, ctx: ApplicationContext, music: str, index: int):
+    async def _play_vk(self, ctx: ApplicationContext, music: str, index: int) -> bool:
+        """Запуск проигрывания трека из ВКонтакте
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+        music : str
+            Название трека
+        index : int
+            Номер трека в результате поиска
+
+        Возвращает
+        ----------
+        bool
+            Запустилось ли проигрывание трека
+        """
+
         await ctx.respond(self._start_message(), ephemeral=True)
 
-        mas = self.vk_audio.search(music, 1, int(index) - 1)
+        # TODO: найти причину почему иногда требуется перезагрузка бота для работы музыки с ВК
+        mas = self.vk_audio.search(q=music, count=1, offset=(index - 1))
         arr = []
         try:
             for i in mas:
@@ -258,7 +479,24 @@ class Music(commands.Cog):
         return True
 
 
-    async def _play_youtube(self, ctx: ApplicationContext, music: str, index: int):
+    async def _play_youtube(self, ctx: ApplicationContext, music: str, index: int) -> bool:
+        """Запуск проигрывания трека с YouTube
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+        music : str
+            Название трека
+        index : int
+            Номер трека в результате поиска
+
+        Возвращает
+        ----------
+        bool
+            Запустилось ли проигрывание трека
+        """
+
         channel = self.bot.get_channel(self.valid_channel_id)
 
         ydl_opts = {'format': 'bestaudio', 'cookiefile': self.cookie, 'cachedir': False}
@@ -308,7 +546,6 @@ class Music(commands.Cog):
             await channel.send("Загрузка плейлиста завершена.", ephemeral=True)
             return True
 
-        # Hyperlink
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(music, download=False)
             URL = info['url']
@@ -325,6 +562,15 @@ class Music(commands.Cog):
 
 
     def _play_next(self, ctx: ApplicationContext):
+        """Запуск проигрывания следующей композиции из очереди или конец
+        проигрывания треков и выход из голосового канала
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+        """
+
         voice = ctx.guild.voice_client
         channel = self.bot.get_channel(self.valid_channel_id)
 
@@ -371,6 +617,15 @@ class Music(commands.Cog):
 
     @commands.slash_command(name="stop", guild_ids=guild_ids, description="Останавливает музыку и покидает канал.")
     async def _stop(self, ctx: ApplicationContext):
+        """Остановка проигрывания треков, очитска очереди и выход из
+        голосового канала
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+        """
+
         if await self._is_valid_channel(ctx):
             voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
             if voice is not None:
@@ -395,6 +650,14 @@ class Music(commands.Cog):
 
     @commands.slash_command(name="shuffle", guild_ids=guild_ids, description="Перемешивает музыкальную очередь.")
     async def _shuffle(self, ctx: ApplicationContext):
+        """Рандомизация позиций треков в очереди
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+        """
+
         if await self._is_valid_channel(ctx):
             if await self._is_playing(ctx):
                 if len(self.music_queue) == 1:
@@ -413,7 +676,17 @@ class Music(commands.Cog):
 
 
     @commands.slash_command(name="skip", guild_ids=guild_ids, description="Пропускает текущий трек.")
-    async def skip(self, ctx: ApplicationContext):
+    async def _skip(self, ctx: ApplicationContext):
+        """Завершение проигрывания текущего трека и запуск проигрывания
+        следующего из музыкальной очереди, если очередь пуста - выход
+        из голосового канала
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+        """
+
         if await self._is_valid_channel(ctx):
             voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
             if await self._is_playing(ctx):
@@ -442,6 +715,16 @@ class Music(commands.Cog):
     @commands.slash_command(name="queue", guild_ids=guild_ids, description="Текущая музыкальная очередь.")
     @option("page", int, description="Номер страницы очереди.", required=False, default=1)
     async def _queue(self, ctx: ApplicationContext, page: int):
+        """Отображение музыкальной очереди страницами по 10 штук
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+        page : int
+            Номер страницы
+        """
+
         if await self._is_valid_channel(ctx):
             if len(self.music_queue) == 1:
                 await ctx.respond("Очередь пуста.", ephemeral=True)
@@ -471,6 +754,16 @@ class Music(commands.Cog):
     @commands.slash_command(name="loop", guild_ids=guild_ids, description="Включает или выключает повтор на боте.")
     @option("choice", description="Повторять всю очередь или только текущий трек? Может вообще выключить?", choices=["one", "all", "off"])
     async def _loop(self, ctx: ApplicationContext, choice: str):
+        """Включение или выключение повтора трека или всей очереди
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+        choice : str
+            Режим повтора: одиночный, всей очереди, выкл
+        """
+
         if await self._is_valid_channel(ctx):
             voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
             if voice is not None:
@@ -499,6 +792,16 @@ class Music(commands.Cog):
     @commands.slash_command(name="remove", guild_ids=guild_ids, description="Удаляет трек под заданным номером из очереди.")
     @option("track_id", description="Номер трека в очереди")
     async def _remove(self, ctx: ApplicationContext, track_id: int):
+        """Удаление трека из музыкальной очереди
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+        track_id : int
+            Номер трека в очереди
+        """
+
         if await self._is_valid_channel(ctx):
             if await self._is_playing(ctx):
                 voice_channel = ctx.guild.voice_client
@@ -542,6 +845,16 @@ class Music(commands.Cog):
     @commands.slash_command(name="seek", guild_ids=guild_ids, description="Перематывает текущий трек.")
     @option("timestamp", description="Интересующее время в формате Ч:ММ:СС")
     async def _seek(self, ctx: ApplicationContext, timestamp: str):
+        """Перемотка трека к указанной отметке времени
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+        timestamp : str
+            Отметка времени, на который нужно перемотать
+        """
+
         if await self._is_valid_channel(ctx):
             if await self._is_playing(ctx):
                 if not await self._is_same_channel(ctx):
@@ -568,6 +881,14 @@ class Music(commands.Cog):
 
     @commands.slash_command(name="nowplaying", guild_ids=guild_ids, description="Отображает текущий трек.")
     async def _nowplaying(self, ctx: ApplicationContext):
+        """Отображение информации о текущем треке
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+        """
+
         if await self._is_valid_channel(ctx):
             voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
             if voice is not None:
@@ -586,13 +907,62 @@ class Music(commands.Cog):
                 
 
 class MusicView(discord.ui.View):
+    """
+    Класс кнопок для обработки музыкальных команд
+
+    Атрибуты
+    --------
+    music : Music
+        Объект основного класса обработчика музыкальных команд
+
+    Методы
+    ------
+    _is_playing(self, interaction: discord.Interaction)
+        Проверка играет ли бот в другом голосовом канале
+    _is_same_channel(interaction: discord.Interaction)
+        Проверка сидит ли пользователь в том же голосовом канале, где
+        играет бот
+    _is_in_voice(interaction: discord.Interaction)
+        Проверка сидит ли пользователь в голосовом канале
+    next_button_callback(self, button, interaction: discord.Interaction)
+        Запуск проигрывания следующего трека из музыкальной очереди
+    stop_button_callback(self, button, interaction: discord.Interaction)
+        Остановка проигрывания музыки
+    shuffle_button_callback(self, button, interaction: discord.Interaction)
+        Рандомизация позиций треков музыкальной очереди
+    loop_button_callback(self, button, interaction: discord.Interaction)
+        Включение или выключение повтора всей очереди
+    loop_one_button_callback(self, button, interaction: discord.Interaction)
+        Включение или выключение повтора трека
+    """
     
-    def __init__(self, music):
+    def __init__(self, music: Music):
+        """
+        Параметры
+        ---------
+        music : Music
+            Объект основного класса обработчика музыкальных команд
+        """
+
         super().__init__()
         self.music = music
         
     
-    async def _is_playing(self, interaction: discord.Interaction):
+    async def _is_playing(self, interaction: discord.Interaction) -> bool:
+        """Проверяет играет ли бот в голосовом канале.
+        Если бот не играет - сообщает об этом пользователю.
+
+        Параметры
+        ---------
+        interaction : discord.Interaction
+            Объект взаимодействия с Discord через команды или компоненты
+
+        Возвращает
+        ----------
+        bool
+            Играет ли бот
+        """
+
         voice_client = discord.utils.get(self.music.bot.voice_clients, guild=interaction.guild)
         if voice_client is None:
             await interaction.response.send_message("Я даже не играю.", ephemeral=True)
@@ -601,7 +971,21 @@ class MusicView(discord.ui.View):
         return True
     
 
-    async def _is_same_channel(interaction: discord.Interaction):
+    async def _is_same_channel(interaction: discord.Interaction) -> bool:
+        """Проверяет играет ли бот в голосовом канале.
+        отличном от голового канала пользователя. Если канал отличен -
+        сообщает об этом пользователю
+
+        Параметры
+        ---------
+        interaction : discord.Interaction
+            Объект взаимодействия с Discord через команды или компоненты
+
+        Возвращает
+        ----------
+        bool
+            Играет ли бот в другом канале
+        """
         voice_client = interaction.guild.voice_client
         if voice_client.channel != interaction.user.voice.channel:
             await interaction.response.send_message("Я играю в другом канале.", ephemeral=True)
@@ -610,7 +994,20 @@ class MusicView(discord.ui.View):
         return True
     
 
-    async def _is_in_voice(interaction: discord.Interaction):
+    async def _is_in_voice(interaction: discord.Interaction) -> bool:
+        """Проверяет находится ли пользователь в голосовом канале
+
+        Параметры
+        ---------
+        interaction : discord.Interaction
+            Объект взаимодействия с Discord через команды или компоненты
+
+        Возвращает
+        ----------
+        bool
+            Находится ли пользователь в голосовом канале
+        """
+
         if interaction.user.voice is None:
             await interaction.response.send_message("Не твое - не трогай.", ephemeral=True)
             return False
@@ -620,6 +1017,17 @@ class MusicView(discord.ui.View):
     
     @discord.ui.button(style=discord.ButtonStyle.primary, emoji="⏹️")
     async def stop_button_callback(self, button, interaction: discord.Interaction):
+        """Остановка проигрывания треков, очитска очереди и выход из
+        голосового канала
+
+        Параметры
+        ---------
+        button : discord.ui.button
+            Кнопка, с которой происходит взаимодействие
+        interaction : discord.Interaction
+            Объект взаимодействия с Discord через команды или компоненты
+        """
+
         if await self._is_playing(interaction):
             voice_client = interaction.guild.voice_client
 
@@ -647,6 +1055,18 @@ class MusicView(discord.ui.View):
 
     @discord.ui.button(style=discord.ButtonStyle.primary, emoji="⏭️")
     async def next_button_callback(self, button, interaction: discord.Interaction):
+        """Завершение проигрывания текущего трека и запуск проигрывания
+        следующего из музыкальной очереди, если очередь пуста - выход
+        из голосового канала
+
+        Параметры
+        ---------
+        button : discord.ui.button
+            Кнопка, с которой происходит взаимодействие
+        interaction : discord.Interaction
+            Объект взаимодействия с Discord через команды или компоненты
+        """
+
         voice = discord.utils.get(self.music.bot.voice_clients, guild=interaction.guild)
         if await self._is_playing(interaction):
             voice_channel = interaction.guild.voice_client
@@ -678,6 +1098,16 @@ class MusicView(discord.ui.View):
 
     @discord.ui.button(style=discord.ButtonStyle.primary, emoji="🔀")
     async def shuffle_button_callback(self, button, interaction: discord.Interaction):
+        """Рандомизация позиций треков в очереди
+
+        Параметры
+        ---------
+        button : discord.ui.button
+            Кнопка, с которой происходит взаимодействие
+        interaction : discord.Interaction
+            Объект взаимодействия с Discord через команды или компоненты
+        """
+
         if await self._is_playing(interaction):
             if len(self.music.music_queue) == 1:
                 await interaction.response.send_message("Нечего мешать.", ephemeral=True)
@@ -699,6 +1129,16 @@ class MusicView(discord.ui.View):
 
     @discord.ui.button(style=discord.ButtonStyle.primary, emoji="🔁")
     async def loop_button_callback(self, button, interaction: discord.Interaction):
+        """Включение или выключение повтора текущего трека
+
+        Параметры
+        ---------
+        button : discord.ui.button
+            Кнопка, с которой происходит взаимодействие
+        interaction : discord.Interaction
+            Объект взаимодействия с Discord через команды или компоненты
+        """
+
         if await self._is_playing(interaction):
             if not await self._is_in_voice(interaction):
                 return
@@ -717,6 +1157,16 @@ class MusicView(discord.ui.View):
 
     @discord.ui.button(style=discord.ButtonStyle.primary, emoji="🔂")
     async def loop_one_button_callback(self, button, interaction: discord.Interaction):
+        """Включение или выключение повтора всей музыкальной очереди
+
+        Параметры
+        ---------
+        button : discord.ui.button
+            Кнопка, с которой происходит взаимодействие
+        interaction : discord.Interaction
+            Объект взаимодействия с Discord через команды или компоненты
+        """
+
         if await self._is_playing(interaction):
             if not await self._is_in_voice(interaction):
                 return

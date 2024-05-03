@@ -3,19 +3,60 @@ import os
 import images
 
 from discord import option
+from discord import ApplicationContext
 from discord.ext import commands
-from discord.commands.context import ApplicationContext
 from dotenv import load_dotenv
 
 
 def setup(bot: discord.bot.Bot): 
+    """Необходимая функция для подключения когов
+
+    Параметры
+    ---------
+    bot : discord.Bot
+        Дискордовский бот
+
+    ЧтоЗа: https://docs.pycord.dev/en/stable/api/clients.html#discord.Bot.load_extension
+    """
+
     bot.add_cog(Admin(bot)) 
     
 
-class Admin(commands.Cog):    
+class Admin(commands.Cog):
+    """
+    Класс коги с набором команд, доступных только администраторам
+
+    Атрибуты
+    --------
+    bot : discord.Bot
+        Дискордовский бот
+    guild_ids : list
+        Список идентификаторов серверов, к которым подключен бот
+    owner_id : str
+        Идентификатор владельца бота, для работы команды say
+
+    Методы
+    ------
+    _say(self, ctx: ApplicationContext, message: str, file: str)
+        Команда, которая отправляет сообщение от имени бота
+    _mute(self, ctx: ApplicationContext, switch: str)
+        Команда, которая мутит всех пользователей в голосовом канале,
+        кроме администраторов
+    _move(self, ctx: ApplicationContext, channel: discord.VoiceChannel)
+        Перемещает всех пользователей в голосовом канале, в другой
+        голосовой канал на выбор
+    """
+
     guild_ids = []
 
     def __init__(self, bot: discord.bot.Bot):
+        """
+        Параметры
+        ---------
+        bot : discord.Bot
+            Дискордовский бот
+        """
+
         self.bot = bot
 
         for guild in bot.guilds:
@@ -30,9 +71,23 @@ class Admin(commands.Cog):
     @option("message", description="Сообщение, которое отправится от имени бота.", required=True)
     @option("file", description="Дополнительный файл к сообщению.", required=False)
     async def _say(self, ctx: ApplicationContext, message: str, file: str):
+        """Отправка сообщения от имени бота, с опциональным прикреплением
+        файлов
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+        message : str
+            Сообщение на отправку
+        file : str
+            Имя файла, который нужно прикрепить к сообщению, опционально
+        """
+
         if str(ctx.author.id) == self.owner_id:
             if file is not None:
-                await ctx.send(message, file=discord.File("images\\say\\" + file))
+                await ctx.send(message, 
+                               file=discord.File("images\\say\\" + file))
             else:
                 await ctx.send(message)
 
@@ -41,6 +96,17 @@ class Admin(commands.Cog):
     @discord.default_permissions(administrator=True)
     @option("switch", description="Вкл/Выкл?", choices=["on", "off"])
     async def _mute(self, ctx: ApplicationContext, switch: str):
+        """Выключает или включает микрофон всех пользователей в голосовом
+        канале
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+        switch : str
+            Выбор выключения или включения микрофонов
+        """
+
         channel = ctx.author.voice.channel
         members = channel.members
 
@@ -66,6 +132,17 @@ class Admin(commands.Cog):
     @discord.default_permissions(administrator=True)
     @option("channel", discord.VoiceChannel, description="Куда? (Если не нашел желаемый канал - можно использовать ID)")
     async def _move(self, ctx: ApplicationContext, channel: discord.VoiceChannel):
+        """Перемещение всех пользователей в текущем голосовом канале в 
+        канал на выбор
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+        channel : discord.VoiceChannel
+            Голосовой канал, куда бот всех переместит
+        """
+
         current_channel = ctx.author.voice.channel
         members = current_channel.members
         guild = self.bot.get_guild(ctx.guild.id)

@@ -2,18 +2,54 @@ import discord
 import random
 
 from discord import option
+from discord import ApplicationContext
 from discord.ext import commands
-from discord.commands.context import ApplicationContext
 
 
-def setup(bot: discord.bot.Bot): 
+def setup(bot: discord.Bot): 
+    """Необходимая функция для подключения когов
+
+    Параметры
+    ---------
+    bot : discord.Bot
+        Дискордовский бот
+
+    ЧтоЗа: https://docs.pycord.dev/en/stable/api/clients.html#discord.Bot.load_extension
+    """
+
     bot.add_cog(Default(bot)) 
     
 
-class Default(commands.Cog):    
+class Default(commands.Cog):
+    """
+    Класс коги с набором команд, доступных каждому пользователю
+
+    Атрибуты
+    --------
+    bot : discord.Bot
+        Дискордовский бот
+    guild_ids : list
+        Список идентификаторов серверов, к которым подключен бот
+
+    Методы
+    ------
+    _roll(ctx: ApplicationContext, arg: int)
+        Пишет пользователю результат подкидывания кубика от 1 до значения
+        аргумента
+    _flip(ctx: ApplicationContext)
+        Пишет пользователю результат подкидывания монетки
+    """
+
     guild_ids = []
 
-    def __init__(self, bot: discord.bot.Bot):
+    def __init__(self, bot: discord.Bot):
+        """
+        Параметры
+        ----------
+        bot : discord.Bot
+            Дискордовский бот
+        """
+
         self.bot = bot
 
         for guild in bot.guilds:
@@ -23,8 +59,19 @@ class Default(commands.Cog):
     @commands.slash_command(name="roll", description="Кидает кубик от 1 до значения аргумента.")
     @option("arg", int, description="До скольки?")
     async def _roll(self, ctx: ApplicationContext, arg: int):
+        """Подкидывание кубика от 1 до значения аргумента
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+        arg : int
+            Максимальное значение кубика        
+        """
+
         num = random.randint(1, arg)
-        message = "Все мы игрушки в руках судьбы, <...> и теперь наше будущее зависит от того, как лягут игральные кости."\
+        message = "Все мы игрушки в руках судьбы, <...> и теперь наше "\
+            "будущее зависит от того, как лягут игральные кости."\
             "Не дрогнет ли рука провидения?... \n"
         message += "Выпало " + str(num)
 
@@ -71,9 +118,18 @@ class Default(commands.Cog):
 
     @commands.slash_command(name="flip", description="Подкидывает монетку.")
     async def _flip(self, ctx: ApplicationContext):
+        """Подкидывание монетки
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота 
+        """
+
         num = random.randint(0, 1)
 
-        message = "Счастье и горе — это две стороны монеты, которую жизнь периодически ставит на ребро...\n"
+        message = "Счастье и горе — это две стороны монеты, "\
+            "которую жизнь периодически ставит на ребро...\n"
 
         if not num:
             message += ctx.author.mention + ", выпал орел!"
@@ -81,5 +137,5 @@ class Default(commands.Cog):
             message += ctx.author.mention + ", выпала режка!"
         else:
             message += "Выпало... ребро?"
-
+        
         await ctx.respond(message)
