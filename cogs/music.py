@@ -17,7 +17,7 @@ from youtubesearchpython import *
 from dotenv import load_dotenv
 
 
-def setup(bot: discord.bot.Bot): 
+def setup(bot: discord.bot.Bot):
     """Необходимая функция для подключения когов
 
     Параметры
@@ -28,7 +28,7 @@ def setup(bot: discord.bot.Bot):
     ЧтоЗа: https://docs.pycord.dev/en/stable/api/clients.html#discord.Bot.load_extension
     """
 
-    bot.add_cog(Music(bot)) 
+    bot.add_cog(Music(bot))
 
 
 class Music(commands.Cog):
@@ -120,7 +120,6 @@ class Music(commands.Cog):
     repeat_one = False
     current_view = None
 
-
     def __init__(self, bot: discord.bot.Bot):
         """
         Параметры
@@ -132,7 +131,7 @@ class Music(commands.Cog):
         """
 
         self.bot = bot
-        
+
         for guild in bot.guilds:
             self.guild_ids.append(guild.id)
 
@@ -142,7 +141,7 @@ class Music(commands.Cog):
         self.cookie = os.getenv('cookie')
         self.ffmpeg_path = os.getenv('ffmpeg_path')
         self.valid_channel_id = os.getenv('valid_channel_id')
-        
+
         if vk_login is not None and vk_password is not None:
             vk_session = vk_api.VkApi(
                 login=vk_login,
@@ -160,7 +159,6 @@ class Music(commands.Cog):
             except vk_api.AuthError as err:
                 logging.warning("Not connected to VK. Error: ", err)
 
-
     def _captcha_handler(self, captcha):
         """Обработчик капчи ВКонтакте
 
@@ -172,9 +170,9 @@ class Music(commands.Cog):
         Взято с: https://github.com/python273/vk_api/blob/master/examples/captcha_handle.py
         """
 
-        key = input("Enter captcha code {0}: ".format(captcha.get_url())).strip()
+        key = input("Enter captcha code {0}: ".format(
+            captcha.get_url())).strip()
         return captcha.try_again(key)
-
 
     def _two_factor(self):
         """Обработчик двухфакторной аутентификации ВКонтакте
@@ -188,7 +186,6 @@ class Music(commands.Cog):
 
         code = input('VK code: ')
         return code, True
-
 
     async def _is_valid_channel(self, ctx: ApplicationContext) -> bool:
         """Проверяет, используется ли верный текстовый канал для 
@@ -211,8 +208,7 @@ class Music(commands.Cog):
         else:
             await ctx.respond("Не тот канал.", ephemeral=True)
             return False
-        
-    
+
     async def _is_playing(self, ctx: ApplicationContext) -> bool:
         """Проверяет играет ли бот в голосовом канале.
         Если бот не играет - сообщает об этом пользователю.
@@ -228,13 +224,13 @@ class Music(commands.Cog):
             Играет ли бот
         """
 
-        voice_client = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
+        voice_client = discord.utils.get(
+            self.bot.voice_clients, guild=ctx.guild)
         if voice_client is not None:
             return True
         else:
             await ctx.respond("Я даже не играю.", ephemeral=True)
             return False
-    
 
     async def _is_same_channel(ctx: ApplicationContext) -> bool:
         """Проверяет играет ли бот в голосовом канале.
@@ -256,9 +252,8 @@ class Music(commands.Cog):
         if voice_client.channel != ctx.author.voice.channel:
             await ctx.respond("Я играю в другом канале.", ephemeral=True)
             return False
-        
-        return True
 
+        return True
 
     async def _msg(self, reason: str, track_id: int):
         """Отправляет сообщение о заказе или запуске проигрывания трека
@@ -281,11 +276,11 @@ class Music(commands.Cog):
             embed = discord.Embed(title="Играет", color=0x00ff44)
 
         embed.set_thumbnail(url=self.music_queue[track_id]["thumb"])
-        embed.add_field(name=str(self.music_queue[track_id]["title"]), 
-                        value="Продолжительность: ``[" + \
-                            str(self.music_queue[track_id]["duration"] +\
-                                   "]``\n" + "Заказал " +\
-                                   self.music_queue[track_id]["user"]),
+        embed.add_field(name=str(self.music_queue[track_id]["title"]),
+                        value="Продолжительность: ``[" +
+                        str(self.music_queue[track_id]["duration"] +
+                            "]``\n" + "Заказал " +
+                            self.music_queue[track_id]["user"]),
                         inline=True)
 
         if reason == "order":
@@ -293,7 +288,6 @@ class Music(commands.Cog):
         elif reason == "playing":
             self.current_view = MusicView(self)
             await channel.send(embed=embed, view=self.current_view)
-
 
     def _start_message(self) -> str:
         """Выбор сообщения, отправляемого при запуске проигрывания музыки
@@ -320,11 +314,12 @@ class Music(commands.Cog):
         message.append('Бонан сука...')
         message.append('Я не бармен, но заказ принял...')
         message.append('Ща классика заебашит...')
-        message.append("Let's break the rules! And really put our backs into it! Max out, pursue it!..")
-        message.append("Чел, сейчас бы слушать это в " + str(date.today().year) + " году...")
+        message.append(
+            "Let's break the rules! And really put our backs into it! Max out, pursue it!..")
+        message.append("Чел, сейчас бы слушать это в " +
+                       str(date.today().year) + " году...")
         message.append("У тебя настолько плохой вкус что ты слушаешь ЭТО?..")
         return message.choice()
-
 
     def _get_timestamp(self, is_seeking=False) -> str:
         """Получение отметки времени играющего трека
@@ -344,7 +339,7 @@ class Music(commands.Cog):
             now = datetime.now()
 
             if is_seeking:
-                now = now - self.seeking[2] + timedelta(hours=self.seeking[1].hour, 
+                now = now - self.seeking[2] + timedelta(hours=self.seeking[1].hour,
                                                         minutes=self.seeking[1].minute,
                                                         seconds=self.seeking[1].second)
             else:
@@ -355,7 +350,6 @@ class Music(commands.Cog):
         except Exception as err:
             logging.error(err)
             return "0:00:00"
-
 
     @commands.slash_command(name="play", guild_ids=guild_ids, description="Включает музыку!")
     @option("platform", description="Платформа.", choices=["vk", "youtube"])
@@ -378,7 +372,8 @@ class Music(commands.Cog):
 
         if self._is_valid_channel(ctx):
             if ctx.author.voice is None:
-                await ctx.respond(ctx.author.mention + ", зайди в голосовой канал.", ephemeral=True)
+                await ctx.respond(ctx.author.mention +
+                                  ", зайди в голосовой канал.", ephemeral=True)
                 return
 
             if await self._is_playing(ctx):
@@ -409,7 +404,7 @@ class Music(commands.Cog):
                 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -nostats -loglevel 0',
                                   'options': '-vn'}
                 voice.play(discord.FFmpegPCMAudio(executable=self.ffmpeg_path,
-                                                  source=self.music_queue[0]["link"], 
+                                                  source=self.music_queue[0]["link"],
                                                   **FFMPEG_OPTIONS),
                            after=lambda e: self._play_next(ctx))
 
@@ -418,7 +413,6 @@ class Music(commands.Cog):
                 self.music_queue[0]["display_time"] = now
 
                 await self._msg("playing", 0)
-
 
     async def _play_vk(self, ctx: ApplicationContext, music: str, index: int) -> bool:
         """Запуск проигрывания трека из ВКонтакте
@@ -466,18 +460,18 @@ class Music(commands.Cog):
             thumb = "https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/VK.com-logo.svg/192px-VK.com-logo" \
                 ".svg.png "
 
-        # Не уверен в необходимости доп. проверки.    
+        # Не уверен в необходимости доп. проверки.
         # if thumb is None:
         #     thumb = "https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/VK.com-logo.svg/192px-VK.com-logo" \
         #         ".svg.png "
 
         dur = str(timedelta(seconds=arr['duration']))
-        self.music_queue.append({"link": URL, "request":  URL, "title":  title, "thumb":  thumb,
-                                 "duration": dur, "user": ctx.author.mention})
+        self.music_queue.append({"link": URL, "request":  URL, "title":  title,
+                                 "thumb":  thumb, "duration": dur,
+                                 "user": ctx.author.mention})
         track_id = len(self.music_queue) - 1
         await self._msg("order", track_id)
         return True
-
 
     async def _play_youtube(self, ctx: ApplicationContext, music: str, index: int) -> bool:
         """Запуск проигрывания трека с YouTube
@@ -499,7 +493,8 @@ class Music(commands.Cog):
 
         channel = self.bot.get_channel(self.valid_channel_id)
 
-        ydl_opts = {'format': 'bestaudio', 'cookiefile': self.cookie, 'cachedir': False}
+        ydl_opts = {'format': 'bestaudio', 'cookiefile': self.cookie,
+                    'cachedir': False}
 
         await ctx.respond(self._start_message(), ephemeral=True)
 
@@ -508,7 +503,7 @@ class Music(commands.Cog):
             r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'
             r'localhost|'
             r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
-            r'(?::\d+)?' 
+            r'(?::\d+)?'
             r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
         # Not a hyperlink
@@ -516,14 +511,16 @@ class Music(commands.Cog):
             videosSearch = VideosSearch(music, limit=index)
             music = videosSearch.result()['result'][index - 1]['link']
             if music == "":
-                ctx.respond("Ошибка при поиске. Возможно такой композиции не существует.")
+                ctx.respond(
+                    "Ошибка при поиске. Возможно такой композиции не существует.")
                 return False
 
             music = 'https://youtu.be/' + music[32:]
 
         # Playlist
         elif ('playlist' in music) or ('&list' in music):
-            await ctx.respond("Загружаю плейлист, дай секунду...", ephemeral=True)
+            await ctx.respond("Загружаю плейлист, дай секунду...",
+                              ephemeral=True)
             checker = int(index)
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -534,11 +531,14 @@ class Music(commands.Cog):
                         URL = video['url']
                         video_title = video['title']
                         music = 'https://youtu.be/' + video['id']
-                        thumb = video['thumbnails'][len(video['thumbnails']) - 1]['url']
+                        thumb = video['thumbnails'][len(
+                            video['thumbnails']) - 1]['url']
                         dur = str(timedelta(seconds=video['duration']))
-                        self.music_queue.append({"link": URL, "request": music, 
-                                                 "title": video_title, "thumb": thumb,
-                                                 "duration": dur, "user": ctx.author.mention})
+                        self.music_queue.append({"link": URL, "request": music,
+                                                 "title": video_title,
+                                                 "thumb": thumb,
+                                                 "duration": dur,
+                                                 "user": ctx.author.mention})
 
                         track_id = len(self.music_queue) - 1
                         await self._msg("order", track_id)
@@ -552,14 +552,14 @@ class Music(commands.Cog):
             video_title = info['title']
             thumb = info['thumbnails'][len(info['thumbnails']) - 1]['url']
             dur = str(timedelta(seconds=info['duration']))
-            self.music_queue.append({"link": URL, "request": music, "title": video_title, 
-                                     "thumb": thumb, "duration": dur, "user": ctx.author.mention})
+            self.music_queue.append({"link": URL, "request": music,
+                                     "title": video_title, "thumb": thumb,
+                                     "duration": dur, "user": ctx.author.mention})
 
             track_id = len(self.music_queue) - 1
 
         await self._msg("order", track_id)
         return True
-
 
     def _play_next(self, ctx: ApplicationContext):
         """Запуск проигрывания следующей композиции из очереди или конец
@@ -576,7 +576,8 @@ class Music(commands.Cog):
 
         if len(self.music_queue) > 1 or self.repeat_one or self.seeking["is_seeking"]:
             if voice is not None:
-                asyncio.run_coroutine_threadsafe(self.current_view.message.edit(view=None), self.bot.loop)
+                asyncio.run_coroutine_threadsafe(
+                    self.current_view.message.edit(view=None), self.bot.loop)
 
                 if not self.repeat_one and not self.repeat_all and not self.seeking["is_seeking"]:
                     del self.music_queue[0]
@@ -585,14 +586,17 @@ class Music(commands.Cog):
                         buffer = self.music_queue.pop(0)
                         self.music_queue.append(buffer)
 
-                FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -nostats -loglevel 0',
+                FFMPEG_OPTIONS = {'before_options': '-reconnect 1 '\
+                                  '-reconnect_streamed 1 '\
+                                  '-reconnect_delay_max 5 -nostats -loglevel 0',
                                   'options': '-vn'}
 
                 if self.seeking["is_seeking"]:
-                    FFMPEG_OPTIONS['options'] = '-vn -ss ' + str(self.seeking["timestamp"].time())
+                    FFMPEG_OPTIONS['options'] = '-vn -ss ' + \
+                        str(self.seeking["timestamp"].time())
 
                 voice.play(discord.FFmpegPCMAudio(executable=self.ffmpeg_path,
-                                                  source=self.music_queue[0]["link"], 
+                                                  source=self.music_queue[0]["link"],
                                                   **FFMPEG_OPTIONS),
                            after=lambda e: self._play_next(ctx))
 
@@ -610,10 +614,12 @@ class Music(commands.Cog):
             if voice is not None:
 
                 del self.music_queue[0]
-                asyncio.run_coroutine_threadsafe(self.current_view.message.edit(view=None), self.bot.loop)
-                asyncio.run_coroutine_threadsafe(voice.disconnect(), self.bot.loop)
-                asyncio.run_coroutine_threadsafe(channel.send("Я пошел, если что - циферки знаешь."), self.bot.loop)
-
+                asyncio.run_coroutine_threadsafe(
+                    self.current_view.message.edit(view=None), self.bot.loop)
+                asyncio.run_coroutine_threadsafe(
+                    voice.disconnect(), self.bot.loop)
+                asyncio.run_coroutine_threadsafe(channel.send(
+                    "Я пошел, если что - циферки знаешь."), self.bot.loop)
 
     @commands.slash_command(name="stop", guild_ids=guild_ids, description="Останавливает музыку и покидает канал.")
     async def _stop(self, ctx: ApplicationContext):
@@ -640,13 +646,13 @@ class Music(commands.Cog):
                 embed.set_thumbnail(url=self.music_queue[0]["thumb"])
                 timestamp = self._get_timestamp(False)
                 embed.add_field(name=str(self.music_queue[0]["title"]),
-                                value="На ``[" + str(timestamp) + "]``\n" + "Заказал " + (self.music_queue[0]["user"]))
+                                value="На ``[" + str(timestamp) + "]``\n" +\
+                                      "Заказал " + (self.music_queue[0]["user"]))
                 await ctx.respond(embed=embed)
 
                 self.music_queue.clear()
                 self.repeat_one = False
                 self.repeat_all = False
-
 
     @commands.slash_command(name="shuffle", guild_ids=guild_ids, description="Перемешивает музыкальную очередь.")
     async def _shuffle(self, ctx: ApplicationContext):
@@ -674,7 +680,6 @@ class Music(commands.Cog):
 
                 await ctx.respond("Успешно перемешано.")
 
-
     @commands.slash_command(name="skip", guild_ids=guild_ids, description="Пропускает текущий трек.")
     async def _skip(self, ctx: ApplicationContext):
         """Завершение проигрывания текущего трека и запуск проигрывания
@@ -699,7 +704,8 @@ class Music(commands.Cog):
                 embed.set_thumbnail(url=self.music_queue[0]["thumb"])
                 timestamp = self._get_timestamp()
                 embed.add_field(name=str(self.music_queue[0]["title"]),
-                                value="На ``[" + str(timestamp) + "]``\n" + "Заказал " + (self.music_queue[0]["user"]))
+                                value="На ``[" + str(timestamp) + "]``\n" +\
+                                      "Заказал " + (self.music_queue[0]["user"]))
 
                 if len(self.music_queue) == 1 and not self.repeat_one and not self.repeat_all:
                     await voice_channel.disconnect()
@@ -710,7 +716,6 @@ class Music(commands.Cog):
 
                 voice.stop()
                 await ctx.respond(embed=embed)
-
 
     @commands.slash_command(name="queue", guild_ids=guild_ids, description="Текущая музыкальная очередь.")
     @option("page", int, description="Номер страницы очереди.", required=False, default=1)
@@ -744,12 +749,15 @@ class Music(commands.Cog):
             embed = discord.Embed(title="Очередь", color=0x00ddff)
             content = ""
             for i in range(start, end):
-                content += str(i + 1) + ") [" + str(self.music_queue[i]["title"]) + "](<" + str(self.music_queue[i]["request"]) + ">)\n"
+                content += str(i + 1) + ") [" +\
+                    str(self.music_queue[i]["title"]) + "](<" + str(
+                    self.music_queue[i]["request"]) + ">)\n"
+                    
             embed.description = content
 
-            embed.set_footer(text="Страница " + str(page) + " из " + str(num_of_pages))
+            embed.set_footer(text="Страница " + str(page) +
+                             " из " + str(num_of_pages))
             await ctx.respond(embed=embed)
-
 
     @commands.slash_command(name="loop", guild_ids=guild_ids, description="Включает или выключает повтор на боте.")
     @option("choice", description="Повторять всю очередь или только текущий трек? Может вообще выключить?", choices=["one", "all", "off"])
@@ -788,7 +796,6 @@ class Music(commands.Cog):
                 else:
                     await ctx.respond("Отсутствие выбора тоже выбор.")
 
-
     @commands.slash_command(name="remove", guild_ids=guild_ids, description="Удаляет трек под заданным номером из очереди.")
     @option("track_id", description="Номер трека в очереди")
     async def _remove(self, ctx: ApplicationContext, track_id: int):
@@ -805,7 +812,7 @@ class Music(commands.Cog):
         if await self._is_valid_channel(ctx):
             if await self._is_playing(ctx):
                 voice_channel = ctx.guild.voice_client
-                
+
                 if not await self._is_same_channel(ctx):
                     return
 
@@ -821,7 +828,9 @@ class Music(commands.Cog):
                     embed.set_thumbnail(url=self.music_queue[0]["thumb"])
                     timestamp = self._get_timestamp()
                     embed.add_field(name=str(self.music_queue[0]["title"]),
-                                    value="На ``[" + str(timestamp) + "]``\n" + "Заказал " + (self.music_queue[0]["user"]))
+                                    value="На ``[" + str(timestamp) +\
+                                          "]``\n" + "Заказал " +\
+                                          (self.music_queue[0]["user"]))
                     await ctx.respond("Ты думал я не могу? А я могу!", embed=embed)
 
                     self.music_queue.clear()
@@ -833,14 +842,15 @@ class Music(commands.Cog):
                 embed = discord.Embed(title="Удалено", color=0xfc0303)
                 embed.set_thumbnail(url=self.music_queue[track_id]["thumb"])
                 embed.add_field(name=str(self.music_queue[track_id]["title"]),
-                                value="Очередь смещена." + "\n" + "Заказал " + self.music_queue[track_id]["user"])
+                                value="Очередь смещена." + "\n" + "Заказал " +\
+                                    self.music_queue[track_id]["user"])
                 await ctx.respond(embed=embed)
 
                 if track_id == 0:
-                    discord.utils.get(self.bot.voice_clients, guild=ctx.guild).stop()
+                    discord.utils.get(self.bot.voice_clients,
+                                      guild=ctx.guild).stop()
                 else:
                     del self.music_queue[track_id]
-
 
     @commands.slash_command(name="seek", guild_ids=guild_ids, description="Перематывает текущий трек.")
     @option("timestamp", description="Интересующее время в формате Ч:ММ:СС")
@@ -863,7 +873,8 @@ class Music(commands.Cog):
                 try:
                     seek_time = datetime.strptime(timestamp, '%H:%M:%S')
                 except Exception:
-                    await ctx.respond("В школе формат записи времени не учили?", ephemeral=True)
+                    await ctx.respond("В школе формат записи времени не учили?",
+                                      ephemeral=True)
                     return
 
                 self.seeking["is_seeking"] = True
@@ -872,12 +883,15 @@ class Music(commands.Cog):
 
                 embed = discord.Embed(title="Перемотка", color=0x030ffc)
                 embed.set_thumbnail(url=self.music_queue[0]["thumb"])
-                embed.add_field(name=str(self.music_queue[0]["title"]), value="``[" + str(seek_time.time()) + " / " + str(
-                    self.music_queue[0]["duration"] + "]``\n" + "Заказал " + self.music_queue[0]["user"]))
+                embed.add_field(name=str(self.music_queue[0]["title"]), 
+                                value="``[" + str(seek_time.time()) + " / " +\
+                                      str(self.music_queue[0]["duration"] +\
+                                      "]``\n" + "Заказал " +\
+                                      self.music_queue[0]["user"]))
 
                 await ctx.respond(embed=embed)
-                discord.utils.get(self.bot.voice_clients, guild=ctx.guild).stop()
-
+                discord.utils.get(self.bot.voice_clients,
+                                  guild=ctx.guild).stop()
 
     @commands.slash_command(name="nowplaying", guild_ids=guild_ids, description="Отображает текущий трек.")
     async def _nowplaying(self, ctx: ApplicationContext):
@@ -898,13 +912,16 @@ class Music(commands.Cog):
                 embed = discord.Embed(title="Сейчас играет", color=0xf59e42)
                 embed.set_thumbnail(url=self.music_queue[0]["thumb"])
                 timestamp = self._get_timestamp()
-                embed.add_field(name=str(self.music_queue[0]["title"]), value="``[" + str(timestamp) + " / " + str(
-                    self.music_queue[0]["duration"] + "]``\n" + "Заказал " + self.music_queue[0]["user"]))
+                embed.add_field(name=str(self.music_queue[0]["title"]), 
+                                value="``[" + str(timestamp) + " / " +\
+                                      str(self.music_queue[0]["duration"] +\
+                                      "]``\n" + "Заказал " +\
+                                      self.music_queue[0]["user"]))
 
                 await ctx.respond(embed=embed)
             else:
                 await ctx.respond("Я даже не играю.", ephemeral=True)
-                
+
 
 class MusicView(discord.ui.View):
     """
@@ -935,7 +952,7 @@ class MusicView(discord.ui.View):
     loop_one_button_callback(self, button, interaction: discord.Interaction)
         Включение или выключение повтора трека
     """
-    
+
     def __init__(self, music: Music):
         """
         Параметры
@@ -946,8 +963,7 @@ class MusicView(discord.ui.View):
 
         super().__init__()
         self.music = music
-        
-    
+
     async def _is_playing(self, interaction: discord.Interaction) -> bool:
         """Проверяет играет ли бот в голосовом канале.
         Если бот не играет - сообщает об этом пользователю.
@@ -963,13 +979,14 @@ class MusicView(discord.ui.View):
             Играет ли бот
         """
 
-        voice_client = discord.utils.get(self.music.bot.voice_clients, guild=interaction.guild)
+        voice_client = discord.utils.get(
+            self.music.bot.voice_clients, guild=interaction.guild)
         if voice_client is None:
-            await interaction.response.send_message("Я даже не играю.", ephemeral=True)
+            await interaction.response.send_message("Я даже не играю.", 
+                                                    ephemeral=True)
             return False
-            
+
         return True
-    
 
     async def _is_same_channel(interaction: discord.Interaction) -> bool:
         """Проверяет играет ли бот в голосовом канале.
@@ -988,11 +1005,11 @@ class MusicView(discord.ui.View):
         """
         voice_client = interaction.guild.voice_client
         if voice_client.channel != interaction.user.voice.channel:
-            await interaction.response.send_message("Я играю в другом канале.", ephemeral=True)
+            await interaction.response.send_message("Я играю в другом канале.", 
+                                                    ephemeral=True)
             return False
-        
+
         return True
-    
 
     async def _is_in_voice(interaction: discord.Interaction) -> bool:
         """Проверяет находится ли пользователь в голосовом канале
@@ -1009,12 +1026,12 @@ class MusicView(discord.ui.View):
         """
 
         if interaction.user.voice is None:
-            await interaction.response.send_message("Не твое - не трогай.", ephemeral=True)
+            await interaction.response.send_message("Не твое - не трогай.", 
+                                                    ephemeral=True)
             return False
-        
+
         return True
-    
-    
+
     @discord.ui.button(style=discord.ButtonStyle.primary, emoji="⏹️")
     async def stop_button_callback(self, button, interaction: discord.Interaction):
         """Остановка проигрывания треков, очитска очереди и выход из
@@ -1041,7 +1058,8 @@ class MusicView(discord.ui.View):
             embed.set_thumbnail(url=self.music.music_queue[0]["thumb"])
             timestamp = self.music._get_timestamp(False)
             embed.add_field(name=str(self.music.music_queue[0]["title"]),
-                            value="На ``[" + str(timestamp) + "]``\n" + "Заказал " + (self.music.music_queue[0]["user"]))
+                            value="На ``[" + str(timestamp) + "]``\n" +\
+                                  "Заказал " + (self.music.music_queue[0]["user"]))
             await interaction.response.send_message(embed=embed)
 
             await voice_client.disconnect()
@@ -1051,7 +1069,6 @@ class MusicView(discord.ui.View):
             self.music.repeat_all = False
 
             await self.message.edit(view=None)
-
 
     @discord.ui.button(style=discord.ButtonStyle.primary, emoji="⏭️")
     async def next_button_callback(self, button, interaction: discord.Interaction):
@@ -1067,7 +1084,8 @@ class MusicView(discord.ui.View):
             Объект взаимодействия с Discord через команды или компоненты
         """
 
-        voice = discord.utils.get(self.music.bot.voice_clients, guild=interaction.guild)
+        voice = discord.utils.get(
+            self.music.bot.voice_clients, guild=interaction.guild)
         if await self._is_playing(interaction):
             voice_channel = interaction.guild.voice_client
 
@@ -1081,7 +1099,8 @@ class MusicView(discord.ui.View):
             embed.set_thumbnail(url=self.music.music_queue[0]["thumb"])
             timestamp = self.music._get_timestamp()
             embed.add_field(name=str(self.music.music_queue[0]["title"]),
-                            value="На ``[" + str(timestamp) + "]``\n" + "Заказал " + (self.music.music_queue[0]["user"]))
+                            value="На ``[" + str(timestamp) + "]``\n" +\
+                                  "Заказал " + (self.music.music_queue[0]["user"]))
 
             if len(self.music.music_queue) == 1 and not self.music.repeat_one and not self.music.repeat_all:
                 await interaction.response.send_message(embed=embed)
@@ -1094,7 +1113,6 @@ class MusicView(discord.ui.View):
             await interaction.response.send_message(embed=embed)
 
             await self.message.edit(view=None)
-
 
     @discord.ui.button(style=discord.ButtonStyle.primary, emoji="🔀")
     async def shuffle_button_callback(self, button, interaction: discord.Interaction):
@@ -1110,7 +1128,8 @@ class MusicView(discord.ui.View):
 
         if await self._is_playing(interaction):
             if len(self.music.music_queue) == 1:
-                await interaction.response.send_message("Нечего мешать.", ephemeral=True)
+                await interaction.response.send_message("Нечего мешать.", 
+                                                        ephemeral=True)
                 return
 
             if not await self._is_in_voice(interaction):
@@ -1124,8 +1143,8 @@ class MusicView(discord.ui.View):
             random.shuffle(self.music.music_queue)
             self.music.music_queue.insert(0, backup)
 
-            await interaction.response.send_message("Успешно перемешано.", ephemeral=True)
-
+            await interaction.response.send_message("Успешно перемешано.", 
+                                                    ephemeral=True)
 
     @discord.ui.button(style=discord.ButtonStyle.primary, emoji="🔁")
     async def loop_button_callback(self, button, interaction: discord.Interaction):
@@ -1153,7 +1172,6 @@ class MusicView(discord.ui.View):
             elif self.music.repeat_all:
                 self.music.repeat_all = False
                 await interaction.response.send_message("Выключил повтор всей очереди.")
-
 
     @discord.ui.button(style=discord.ButtonStyle.primary, emoji="🔂")
     async def loop_one_button_callback(self, button, interaction: discord.Interaction):

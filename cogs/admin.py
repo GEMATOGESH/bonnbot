@@ -8,7 +8,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 
 
-def setup(bot: discord.bot.Bot): 
+def setup(bot: discord.bot.Bot):
     """Необходимая функция для подключения когов
 
     Параметры
@@ -19,8 +19,8 @@ def setup(bot: discord.bot.Bot):
     ЧтоЗа: https://docs.pycord.dev/en/stable/api/clients.html#discord.Bot.load_extension
     """
 
-    bot.add_cog(Admin(bot)) 
-    
+    bot.add_cog(Admin(bot))
+
 
 class Admin(commands.Cog):
     """
@@ -65,7 +65,6 @@ class Admin(commands.Cog):
         load_dotenv()
         self.owner_id = os.getenv('owner_id')
 
-
     @commands.slash_command(name="say", description="Команда для владельца, позволяет отправить сообщение от имени бота.")
     @discord.default_permissions(administrator=True)
     @option("message", description="Сообщение, которое отправится от имени бота.", required=True)
@@ -86,11 +85,10 @@ class Admin(commands.Cog):
 
         if str(ctx.author.id) == self.owner_id:
             if file is not None:
-                await ctx.send(message, 
+                await ctx.send(message,
                                file=discord.File("images\\say\\" + file))
             else:
                 await ctx.send(message)
-
 
     @commands.slash_command(name="mute", guild_ids=guild_ids, description="Управление микрофоном всех пользователей в текущем голосовом канале.")
     @discord.default_permissions(administrator=True)
@@ -126,7 +124,6 @@ class Admin(commands.Cog):
             for member in members:
                 if not member.guild_permissions.administrator:
                     await member.edit(mute=False)
-
 
     @commands.slash_command(name="move", guild_ids=guild_ids, description="Перемещает всех пользователей текущего канала в выбранный голосовой канал.")
     @discord.default_permissions(administrator=True)

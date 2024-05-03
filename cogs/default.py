@@ -6,7 +6,7 @@ from discord import ApplicationContext
 from discord.ext import commands
 
 
-def setup(bot: discord.Bot): 
+def setup(bot: discord.Bot):
     """Необходимая функция для подключения когов
 
     Параметры
@@ -17,8 +17,8 @@ def setup(bot: discord.Bot):
     ЧтоЗа: https://docs.pycord.dev/en/stable/api/clients.html#discord.Bot.load_extension
     """
 
-    bot.add_cog(Default(bot)) 
-    
+    bot.add_cog(Default(bot))
+
 
 class Default(commands.Cog):
     """
@@ -54,7 +54,6 @@ class Default(commands.Cog):
 
         for guild in bot.guilds:
             self.guild_ids.append(guild.id)
-
 
     @commands.slash_command(name="roll", description="Кидает кубик от 1 до значения аргумента.")
     @option("arg", int, description="До скольки?")
@@ -115,7 +114,6 @@ class Default(commands.Cog):
 
         await ctx.respond(message)
 
-
     @commands.slash_command(name="flip", description="Подкидывает монетку.")
     async def _flip(self, ctx: ApplicationContext):
         """Подкидывание монетки
@@ -137,5 +135,5 @@ class Default(commands.Cog):
             message += ctx.author.mention + ", выпала режка!"
         else:
             message += "Выпало... ребро?"
-        
+
         await ctx.respond(message)

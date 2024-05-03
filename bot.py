@@ -5,19 +5,19 @@ import logging
 from dotenv import load_dotenv
 from discord import ApplicationContext
 
-bot = discord.Bot(intents=discord.Intents.all(), 
+bot = discord.Bot(intents=discord.Intents.all(),
                   activity=discord.Game(name="with numbers."))
 
 load_dotenv()
 bot_key = os.getenv('bot_key')
 guild_ids = list(map(int, os.getenv('servers').split(",")))
 
-logging.basicConfig(level=logging.INFO, 
+logging.basicConfig(level=logging.INFO,
                     format='[%(asctime)s] [%(name)s/%(levelname)s]: %(message)s',
                     datefmt='%H:%M:%S',
                     handlers=[
-                        logging.FileHandler("bonnbot.log", 
-                                            mode='w', 
+                        logging.FileHandler("bonnbot.log",
+                                            mode='w',
                                             encoding='utf-8'),
                         logging.StreamHandler()
                     ])
@@ -40,7 +40,7 @@ async def on_ready():
     for cog in cogs_list:
         bot.load_extension(f'cogs.{cog}')
         logging.info(cog.title() + " cog loaded.")
-    
+
     await bot.sync_commands(guild_ids=guild_ids)
 
     logging.info('Logged in as')
@@ -62,10 +62,10 @@ async def on_message(message: discord.Message):
     """
 
     member = message.author
-            
+
     if not member.bot:
-        logging.info(str(member) + " [" + str(message.channel.name) +\
-                      "]:" + str(message.content))
+        logging.info(str(member) + " [" + str(message.channel.name) +
+                     "]:" + str(message.content))
 
 
 @bot.event
