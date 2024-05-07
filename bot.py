@@ -65,7 +65,7 @@ async def on_message(message: discord.Message):
 
     if not member.bot:
         logging.info(str(member) + " [" + str(message.channel.name) +
-                     "]:" + str(message.content))
+                     "]: " + str(message.content))
 
 
 @bot.event
