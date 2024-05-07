@@ -1,6 +1,7 @@
 import discord
 import os
 import images
+import datetime
 
 from discord import option
 from discord import ApplicationContext
@@ -39,12 +40,21 @@ class Admin(commands.Cog):
     ------
     _say(self, ctx: ApplicationContext, message: str, file: str)
         Команда, которая отправляет сообщение от имени бота
-    _mute(self, ctx: ApplicationContext, switch: str)
+    _mute(self, ctx: ApplicationContext, user: discord.Member)
+        Выключает микрофон пользователю, включает если он был выключен 
+        до этого
+    _mute_all(self, ctx: ApplicationContext, switch: str)
         Команда, которая мутит всех пользователей в голосовом канале,
         кроме администраторов
     _move(self, ctx: ApplicationContext, channel: discord.VoiceChannel)
         Перемещает всех пользователей в голосовом канале, в другой
         голосовой канал на выбор
+    _kick(self, ctx: ApplicationContext, user: discord.Member)
+        Кикает пользователя с сервера
+    _ban(self, ctx: ApplicationContext, user: discord.Member)
+        Банит пользователя с сервера
+    _timeout(self, ctx: ApplicationContext, user: discord.Member, timestamp: str)
+        Временное ограничение доступа к серверу определенному пользователю
     """
 
     guild_ids = []
@@ -89,11 +99,35 @@ class Admin(commands.Cog):
                                file=discord.File("images\\say\\" + file))
             else:
                 await ctx.send(message)
+            
+    @commands.slash_command(name="mute", guild_ids=guild_ids, description="Выключает микрофон пользователя, включает если был выключен до этого.")
+    @discord.default_permissions(administrator=True)
+    @option("user", discord.Member, description="Пользователь на выбор, если нет в списке, можно использовать идентификатор пользователя.")
+    async def _mute(self, ctx: ApplicationContext, user: discord.Member):
+        """Выключает микрофон пользователя, если он уже был выключен - 
+        включает его
 
-    @commands.slash_command(name="mute", guild_ids=guild_ids, description="Управление микрофоном всех пользователей в текущем голосовом канале.")
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+        user : discord.Member
+            Пользователь, которому выключит/включит микрофон
+        """
+
+        if user.voice.mute:
+            await user.edit(mute=False)
+            await ctx.respond(f"Включил микрофон {user.mention} ({user.name}).", 
+                          ephemeral=True)
+        else:
+            await user.edit(mute=True)
+            await ctx.respond(f"Выключил микрофон {user.mention} ({user.name}).", 
+                          ephemeral=True)
+
+    @commands.slash_command(name="mute_all", guild_ids=guild_ids, description="Управление микрофоном всех(!) пользователей в текущем голосовом канале.")
     @discord.default_permissions(administrator=True)
     @option("switch", description="Вкл/Выкл?", choices=["on", "off"])
-    async def _mute(self, ctx: ApplicationContext, switch: str):
+    async def _mute_all(self, ctx: ApplicationContext, switch: str):
         """Выключает или включает микрофон всех пользователей в голосовом
         канале
 
@@ -153,3 +187,63 @@ class Admin(commands.Cog):
         for member in members:
             user = await guild.fetch_member(member.id)
             await user.move_to(channel)
+            
+    @commands.slash_command(name="kick", guild_ids=guild_ids, description="Выгоняет пользователя с сервера с возможностью возвращения по приглашению.")
+    @discord.default_permissions(administrator=True)
+    @option("user", discord.Member, description="Пользователь на выбор, если нет в списке, можно использовать идентификатор пользователя.")
+    async def _kick(self, ctx: ApplicationContext, user: discord.Member):
+        """Кик пользователя с сервера
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+        user : discord.Member
+            Пользователь, которого кикнут
+        """
+
+        await user.kick()
+        await ctx.respond(f"{user.mention} ({user.name}) был кикнут.", 
+                          ephemeral=True)
+            
+    @commands.slash_command(name="ban", guild_ids=guild_ids, description="Банит пользователя с сервера без возможности возвращения по приглашению.")
+    @discord.default_permissions(administrator=True)
+    @option("user", discord.Member, description="Пользователь на выбор, если нет в списке, можно использовать идентификатор пользователя.")
+    async def _ban(self, ctx: ApplicationContext, user: discord.Member):
+        """Бан пользователя с сервера
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+        user : discord.Member
+            Пользователь, которого забанит
+        """
+
+        await user.ban()
+        await ctx.respond(f"{user.mention} ({user.name}) был забанен.", 
+                          ephemeral=True)
+            
+    @commands.slash_command(name="timeout", guild_ids=guild_ids, description="Временное блокирование пользователя на сервере.")
+    @discord.default_permissions(administrator=True)
+    @option("user", discord.Member, description="Пользователь на выбор, если нет в списке, можно использовать идентификатор пользователя.")
+    @option("timestamp", description="Время ограничения в формате Ч:ММ:СС")
+    async def _timeout(self, ctx: ApplicationContext, user: discord.Member, timestamp: str):
+        """Временное ограничение доступа пользователя к серверу
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+        user : discord.Member
+            Пользователь, которому ограничит доступ
+        timestamp : str
+            Время ограничения в формате Ч:ММ:СС
+        """
+        
+        t = datetime.datetime.strptime(timestamp, '%H:%M:%S')
+        delta = datetime.timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
+        await user.timeout_for(duration=delta)
+        await ctx.respond(f"Пользователю {user.mention} ({user.name}) "\
+            f"был ограничен доступ к серверу на {timestamp}",
+            ephemeral=True)
