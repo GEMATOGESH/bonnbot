@@ -33,11 +33,14 @@ class Default(commands.Cog):
 
     Методы
     ------
-    _roll(ctx: ApplicationContext, arg: int)
+    _roll(self, ctx: ApplicationContext, arg: int)
         Пишет пользователю результат подкидывания кубика от 1 до значения
         аргумента
-    _flip(ctx: ApplicationContext)
+    _flip(self, ctx: ApplicationContext)
         Пишет пользователю результат подкидывания монетки
+    _deafen(self, ctx: ApplicationContext)
+        Выключает входящий звук пользователю, включает если он был
+        выключен
     """
 
     guild_ids = []
@@ -137,3 +140,25 @@ class Default(commands.Cog):
             message += "Выпало... ребро?"
 
         await ctx.respond(message)
+
+    @commands.slash_command(name="deafen", description="Выключение/включение себе входящего звука.")
+    async def _deafen(self, ctx: ApplicationContext):
+        """Выключает входящий звук пользователю, включает если он был
+        выключен
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота 
+        """
+        
+        user = ctx.user
+
+        if user.voice.deaf:
+            await user.edit(deafen=False)
+            await ctx.respond(f"Включил входящий звук {user.mention} ({user.name}).", 
+                          ephemeral=True)
+        else:
+            await user.edit(deafen=True)
+            await ctx.respond(f"Выключил входящий звук {user.mention} ({user.name}).", 
+                          ephemeral=True)
