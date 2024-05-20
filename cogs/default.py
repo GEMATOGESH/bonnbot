@@ -1,10 +1,11 @@
 import discord
 import random
+import copy
 
 from discord import option
 from discord import ApplicationContext
 from discord.ext import commands
-
+from discord.ui.item import Item
 
 def setup(bot: discord.Bot):
     """Необходимая функция для подключения когов
@@ -162,3 +163,257 @@ class Default(commands.Cog):
             await user.edit(deafen=True)
             await ctx.respond(f"Выключил входящий звук {user.mention} ({user.name}).", 
                           ephemeral=True)
+            
+    @commands.slash_command(name="minesweeper", description="Игра Сапер, к сожалению только 5 на 5.")
+    async def _minesweeper(self, ctx: ApplicationContext):
+        """Игра Сапер
+        Консольная имплементация: https://github.com/GEMATOGESH/minesweeper
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота 
+        """
+        
+        view = MineSweeperView()
+        await ctx.respond(view=view)
+                
+    
+    
+class MineSweeperView(discord.ui.View):
+    """
+    Класс кнопок для игры в Сапера
+
+    Атрибуты
+    --------
+    number_of_mines : int
+        Число мин в игре
+    field_x : int
+        Длина поля по X
+    field_y : int
+        Длина поля по Y
+    field : list[list[int | str]]
+        Созданное игровое поле
+    player_field : list[list[int | str]]
+        Текущее поле со стороны игрока
+    revealed_tiles : int
+        Количество открытых клеток - для проверки конца игры
+
+    Методы
+    ------
+    async def _print_classified_field(self)
+        Вывод в консоль игрового поля
+    async def _reveal_all(self)
+        Открытие всех клеток игрового поля, обычно - в конце игры
+    async def _reveal(self, i: int, j: int)
+        Рекурсивное открытие клеток поля
+    async def _button_update(self)
+        Обновление стиля кнопки в соответствии с ситуацией в игре
+    async def _button_callback(self, interaction: discord.Interaction)
+        Обработчик нажатия на кнопки
+    def _create_minefield(self)
+        Создание игрового поля, заполнение его минами и числами
+    """
+    
+    number_of_mines = 5
+    field_x = 5
+    field_y = 5
+
+    field = None
+    player_field = None
+    revealed_tiles = 0
+    
+    def __init__(self):    
+        """ Первичная инициализация игры: создание кнопок и добавление
+        их в вью.
+        """    
+        
+        super().__init__()
+        self._create_minefield()
+        
+        btns = [None] * self.field_x
+        for i in range(self.field_x):
+            btns[i] = [None] * self.field_x
+            
+        for i in range(0, self.field_x):
+            for j in range(0, self.field_y):
+                btn = discord.ui.Button(style=discord.ButtonStyle.gray)
+                btn.label = "?"
+                btn.custom_id = str(i * self.field_y + j)
+                btns[i][j] = btn
+        
+        for i in range(0, self.field_x):
+            for j in range(0, self.field_y):
+                btns[i][j].callback = self._button_callback
+                
+                self.add_item(btns[i][j])
+                
+    async def _print_classified_field(self):
+        """Отображение всего игрового поля, включая мины, используется
+        только для дебага!
+        """
+        
+        for i in range(0, self.field_x):
+            for j in range(0, self.field_y):
+                print(self.field[i][j], end="")
+                
+            print()
+            
+    async def _reveal_all(self):
+        """Открытие всех клеток на поле (обычно по окончанию игры)
+        """
+        
+        for i in range(0, self.field_x):
+            for j in range(0, self.field_y):
+                self.player_field[i][j] = self.field[i][j]
+        
+    async def _reveal(self, i: int, j: int):       
+        """Рекурсивное открытие клетки по координатам (i, j)
+
+        Параметры
+        ----------
+        i : int
+            Позиция по оси Х на поле
+        j : int
+            Позиция по оси Y на поле
+
+        Возвращает
+        -------
+        bool
+            Безопасна ли клетка, False в случае открытия мины
+        """ 
+        
+        if self.player_field[i][j] == "?":
+            if self.field[i][j] == "m":
+                await self._reveal_all()
+                return False
+            
+            self.player_field[i][j] = self.field[i][j]
+            self.revealed_tiles += 1
+            
+            if self.field[i][j] == 0:
+                if i > 0 and j > 0: 
+                    await self._reveal(i-1, j-1) #NW
+                if i > 0: 
+                    await self._reveal(i-1, j) #N
+                if i > 0 and j < (self.field_x - 1): 
+                    await self._reveal(i-1, j+1) #E
+                if j > 0: 
+                    await self._reveal(i, j-1) #W
+                if j < (self.field_x - 1): 
+                    await self._reveal(i, j+1) #E
+                if i < (self.field_y - 1) and j > 0: 
+                    await self._reveal(i+1, j-1) #SW
+                if i < (self.field_y - 1): 
+                    await self._reveal(i+1, j) #S
+                if i < (self.field_y - 1) and j < (self.field_x - 1): 
+                    await self._reveal(i+1, j+1) #SE
+            return True
+        
+        if self.player_field[i][j] != "?" and self.player_field[i][j] != "m":
+            return True
+    
+    async def _button_update(self):
+        """Обновление стиля кнопки в соответствии с ситуацией на поле
+        """
+        
+        for i in range(0, self.field_x):
+            for j in range(0, self.field_y):
+                if self.player_field[i][j] != "?":
+                    id = i * self.field_y + j
+                    
+                    if self.player_field[i][j] == "m":
+                        self.children[id].style = discord.ButtonStyle.red
+                        self.children[id].label = "💣" 
+                    else:   
+                        if self.player_field[i][j] == 0:
+                            self.children[id].style = discord.ButtonStyle.gray
+                        
+                        if 8 >= self.player_field[i][j] >= 1:
+                            self.children[id].style = discord.ButtonStyle.blurple  
+                                    
+                        self.children[id].label = str(self.player_field[i][j])
+                        
+                    self.children[id].disabled = True     
+            
+    async def _button_callback(self, interaction: discord.Interaction):  
+        """Ивент нажатия на кнопку на поле
+
+        Параметры
+        ----------
+        interaction : discord.Interaction
+            Объект взаимодействия с кнопкой
+        """
+                      
+        id = int(interaction.custom_id)
+        i = id // 5
+        j = id % 5
+        
+        res = await self._reveal(i, j)        
+        await self._button_update()
+        await interaction.response.edit_message(view=self) 
+        
+        if not res:
+            await interaction.respond("BOOM!", ephemeral=True)
+            return
+            
+        if self.revealed_tiles == self.field_x * self.field_y - self.number_of_mines:
+            await self._reveal_all()
+            await self._button_update()
+            await interaction.response.edit_message(view=self) 
+            await interaction.respond("WIN!", ephemeral=True)
+            
+    def _create_minefield(self):
+        """Создание игрового поля, заполнение его минами и числами
+        """
+        
+        self.field = [None] * self.field_x
+        for i in range(self.field_x):
+            self.field[i] = [None] * self.field_x
+            
+        self.player_field = copy.deepcopy(self.field)
+
+        indxs = []
+        for _ in range(self.number_of_mines):
+            while True:
+                pretendent = random.randint(0, self.field_x * self.field_y - 1)
+                if pretendent not in indxs:
+                    indxs.append(pretendent)
+                    break
+
+        for i in range(0, self.field_x):
+            for j in range(0, self.field_y):
+                pos = i * self.field_y + j
+                
+                if pos in indxs:
+                    self.field[i][j] = "m" 
+                    
+                self.player_field[i][j] = "?"
+                    
+        for i in range(0, self.field_x):
+            for j in range(0, self.field_y):
+                if self.field[i][j] != "m":
+                    neighbors = []
+                    if i > 0 and j > 0: 
+                        neighbors.append(self.field[i-1][j-1]) #NW
+                    if i > 0: 
+                        neighbors.append(self.field[i-1][j]) #N
+                    if i > 0 and j < (self.field_x - 1): 
+                        neighbors.append(self.field[i-1][j+1]) #NE
+                    if j > 0: 
+                        neighbors.append(self.field[i][j-1]) #W
+                    if j < (self.field_x - 1): 
+                        neighbors.append(self.field[i][j+1]) #E
+                    if i < (self.field_y - 1) and j > 0: 
+                        neighbors.append(self.field[i+1][j-1]) #SW
+                    if i < (self.field_y - 1): 
+                        neighbors.append(self.field[i+1][j]) #S
+                    if i < (self.field_y - 1) and j < (self.field_x - 1): 
+                        neighbors.append(self.field[i+1][j+1]) #SE
+                    
+                    weight = 0
+                    for neighbor in neighbors:
+                        if neighbor == "m":
+                            weight += 1
+
+                    self.field[i][j] = weight
