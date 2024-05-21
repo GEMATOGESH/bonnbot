@@ -192,6 +192,18 @@ class Default(commands.Cog):
 
         await ctx.respond(view=RockPaperScissorsView())
 
+    @commands.slash_command(name="tictactoe", description="Игра Крестики-Нолики.")
+    async def _tictactoe(self, ctx: ApplicationContext):
+        """Игра Крестики-Нолики
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота 
+        """
+
+        await ctx.respond(view=TicTacToe())
+
 
 class MineSweeperView(discord.ui.View):
     """
@@ -434,7 +446,7 @@ class RockPaperScissorsView(discord.ui.View):
     """
 
     def __init__(self):
-        """ Первичная инициализация игры.
+        """ Первичная инициализация игры. Создание кнопок для игроков.
         """
 
         super().__init__()
@@ -491,7 +503,6 @@ class RockPaperScissorsView(discord.ui.View):
             self.children[player * 3 + button_id].disabled = True
 
         await interaction.response.edit_message(view=self)
-        await interaction.respond(f"{interaction.user.mention}, ты выбрал {choice}.", ephemeral=True)
 
         if self.players[0]["id"] is not None and self.players[1]["id"] is not None:
             result = 2
@@ -519,4 +530,130 @@ class RockPaperScissorsView(discord.ui.View):
                 case 2:
                     await interaction.channel.send(f"Победил {self.players[1]["id"].mention}!")
 
-# TODO: Tic Tac Toe
+
+class TicTacToe(discord.ui.View):
+    """
+    Класс кнопок для игры в Камень, Ножницы, Бумагу
+
+    Методы
+    ------
+    _button_callback(interaction: discord.Interaction)
+        Обработка нажатий на кнопки, вывод результатов игры по окончанию
+    _disable_all_buttons()
+        Выключает все кнопки в конце игры
+    """
+
+    def __init__(self):
+        """ Первичная инициализация игры. Создание поля и кнопок.
+        """
+
+        super().__init__()
+        self.players = []
+        self.turn = 0
+        self.symbols = ["❌", "🟢"]
+        self.colors = [discord.ButtonStyle.red, discord.ButtonStyle.green]
+
+        self.field = [None] * 3
+        for i in range(3):
+            self.field[i] = [None] * 3
+
+        for i in range(0, 3):
+            for j in range(0, 3):
+                btn = discord.ui.Button(style=discord.ButtonStyle.gray)
+                btn.label = "◻"
+                btn.custom_id = str(i * 3 + j)
+                btn.row = i
+                btn.callback = self._button_callback
+
+                self.add_item(btn)
+
+    async def _disable_all_buttons(self):
+        """Выключает все кнопки во вью
+        """
+
+        for btn in self.children:
+            btn.disabled = True
+
+    async def _button_callback(self, interaction: discord.Interaction):
+        """Ивент нажатия на кнопку, т.к. одио событие отвечает 
+        за все кнопки, обрабатываем все случаи
+        #TODO Проверки конца игры не самые красивые
+
+        Параметры
+        ----------
+        interaction : discord.Interaction
+            Объект взаимодействия с кнопкой
+        """
+
+        if len(self.players) < 2 or interaction.user in self.players:
+            if len(self.players) == 0 or len(self.players) == 1 and interaction.user not in self.players:
+                self.players.append(interaction.user)
+
+            if interaction.user in self.players:
+                if self.turn % 2 == self.players.index(interaction.user):
+                    i = int(interaction.custom_id) // 3
+                    j = int(interaction.custom_id) % 3
+                    id = i * 3 + j
+
+                    self.field[i][j] = self.symbols[self.turn % 2]
+                    self.children[id].label = self.symbols[self.turn % 2]
+                    self.children[id].style = self.colors[self.turn % 2]
+                    self.children[id].disabled = True
+
+                    is_ended = False
+                    for axys1 in range(0, 3):
+                        if (self.field[axys1][0] == self.field[axys1][1] == self.field[axys1][2]) and \
+                           (self.field[axys1][0] is not None) and \
+                           (self.field[axys1][1] is not None) and \
+                           (self.field[axys1][2] is not None):
+                            for axys2 in range(0, 3):
+                                id = axys1 * 3 + axys2
+                                self.children[id].style = discord.ButtonStyle.blurple
+                            await self._disable_all_buttons()
+                            is_ended = True
+
+                        if (self.field[0][axys1] == self.field[1][axys1] == self.field[2][axys1]) and \
+                           (self.field[0][axys1] is not None) and \
+                           (self.field[1][axys1] is not None) and \
+                           (self.field[2][axys1] is not None):
+                            for axys2 in range(0, 3):
+                                id = axys2 * 3 + axys1
+                                self.children[id].style = discord.ButtonStyle.blurple
+                            await self._disable_all_buttons()
+                            is_ended = True
+
+                    if (self.field[0][0] == self.field[1][1] == self.field[2][2]) and \
+                       (self.field[0][0] is not None) and \
+                       (self.field[1][1] is not None) and \
+                       (self.field[2][2] is not None):
+                        self.children[0].style = discord.ButtonStyle.blurple
+                        self.children[4].style = discord.ButtonStyle.blurple
+                        self.children[8].style = discord.ButtonStyle.blurple
+                        await self._disable_all_buttons()
+                        is_ended = True
+
+                    if (self.field[0][2] == self.field[1][1] == self.field[2][0]) and \
+                       (self.field[0][2] is not None) and \
+                       (self.field[1][1] is not None) and \
+                       (self.field[2][0] is not None):
+                        self.children[2].style = discord.ButtonStyle.blurple
+                        self.children[4].style = discord.ButtonStyle.blurple
+                        self.children[6].style = discord.ButtonStyle.blurple
+                        await self._disable_all_buttons()
+                        is_ended = True
+
+                    await interaction.response.edit_message(view=self)
+
+                    if is_ended:
+                        await interaction.respond(f"Победил {interaction.user.mention}.")
+
+                    self.turn += 1
+                    if self.turn == 9:
+                        await interaction.respond(f"Победила дружба.")
+
+                    return
+                else:
+                    await interaction.respond("Не твой ход.", ephemeral=True)
+                    return
+
+        await interaction.respond("Ты не участвуешь в игре.", ephemeral=True)
