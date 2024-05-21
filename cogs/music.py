@@ -42,47 +42,47 @@ class Music(commands.Cog):
 
     Методы
     ------
-    _captcha_handler(self, captcha)
+    _captcha_handler(captcha)
         Обработчик капчи для подключения к ВКонтакте
-    _two_factor(self)
+    _two_factor()
         Обработчик двухфакторной аутентификации для подключения к ВКонтакте
-    _is_valid_channel(self, ctx: ApplicationContext)
+    _is_valid_channel(ctx: ApplicationContext)
         Проверка, используется ли нужный текстовый канал для вызова
         музыкальных команд
-    _is_playing(self, ctx: ApplicationContext)
+    _is_playing(ctx: ApplicationContext)
         Проверка играет ли бот в другом голосовом канале
     _is_same_channel(ctx: ApplicationContext)
         Проверка сидит ли пользователь в том же голосовом канале, где
         играет бот
-    _msg(self, reason: str, track_id: int)
+    _msg(reason: str, track_id: int)
         Отправка сообщения ботом
-    _start_message(self)
+    _start_message()
         Стартовое сообщение бота, при запуске музыкальных команд
-    _get_timestamp(self, is_seeking=False)
+    _get_timestamp(is_seeking=False)
         Получение отметки времени текущего трека
-    _play(self, ctx: ApplicationContext, platform: str, track: str, index: int)
+    _play(ctx: ApplicationContext, platform: str, track: str, index: int)
         Запуск проигрывания музыки
-    _play_vk(self, ctx: ApplicationContext, music: str, index: int)
+    _play_vk(ctx: ApplicationContext, music: str, index: int)
         Проигрывание музыки из ВКонтакте
-    _play_youtube(self, ctx: ApplicationContext, music: str, index: int)
+    _play_youtube(ctx: ApplicationContext, music: str, index: int)
         Проигрывание музыки с YouTube
-    _play_next(self, ctx: ApplicationContext)
+    _play_next(ctx: ApplicationContext)
         Запуск проигрывания следующего трека из музыкальной очереди
-    _stop(self, ctx: ApplicationContext)
+    _stop(ctx: ApplicationContext)
         Остановка проигрывания музыки
-    _shuffle(self, ctx: ApplicationContext)
+    _shuffle(ctx: ApplicationContext)
         Рандомизация позиций треков музыкальной очереди
-    _skip(self, ctx: ApplicationContext)
+    _skip(ctx: ApplicationContext)
         Пропуск музыкального трека
-    _queue(self, ctx: ApplicationContext, page: int)
+    _queue(ctx: ApplicationContext, page: int)
         Отображение музыкальной очереди
-    _loop(self, ctx: ApplicationContext, choice: str)
+    _loop(ctx: ApplicationContext, choice: str)
         Включение или выключение повтора трека/очереди
-    _remove(self, ctx: ApplicationContext, track_id: int)
+    _remove(ctx: ApplicationContext, track_id: int)
         Удаление трека из музыкальной очереди
-    _seek(self, ctx: ApplicationContext, timestamp: str)
+    _seek(ctx: ApplicationContext, timestamp: str)
         Перемотка трека
-    _nowplaying(self, ctx: ApplicationContext)
+    _nowplaying(ctx: ApplicationContext)
         Отображение информации о текущем треке
     """
     

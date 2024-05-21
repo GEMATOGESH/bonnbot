@@ -33,18 +33,20 @@ class Default(commands.Cog):
 
     Методы
     ------
-    _roll(self, ctx: ApplicationContext, arg: int)
+    _roll(ctx: ApplicationContext, arg: int)
         Пишет пользователю результат подкидывания кубика от 1 до значения
         аргумента
-    _flip(self, ctx: ApplicationContext)
+    _flip(ctx: ApplicationContext)
         Пишет пользователю результат подкидывания монетки
-    _deafen(self, ctx: ApplicationContext)
+    _deafen(ctx: ApplicationContext)
         Выключает входящий звук пользователю, включает если он был
         выключен
-    _minesweeper(self, ctx: ApplicationContext)
+    _minesweeper(ctx: ApplicationContext)
         Игра в Сапера в поле 5 на 5
-    _rockpaperscissors(self, ctx: ApplicationContext)
+    _rockpaperscissors(ctx: ApplicationContext)
         Игра в Камень, Ножницы, Бумага на двоих
+    _tictactoe(ctx: ApplicationContext)
+        Игра в Крестики-Нолики
     """
 
     guild_ids = []

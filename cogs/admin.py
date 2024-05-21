@@ -34,22 +34,22 @@ class Admin(commands.Cog):
 
     Методы
     ------
-    _say(self, ctx: ApplicationContext, message: str, file: str)
+    _say(ctx: ApplicationContext, message: str, file: str)
         Команда, которая отправляет сообщение от имени бота
-    _mute(self, ctx: ApplicationContext, user: discord.Member)
+    _mute(ctx: ApplicationContext, user: discord.Member)
         Выключает микрофон пользователю, включает если он был выключен 
         до этого
-    _mute_all(self, ctx: ApplicationContext, switch: str)
+    _mute_all(ctx: ApplicationContext, switch: str)
         Команда, которая мутит всех пользователей в голосовом канале,
         кроме администраторов
-    _move(self, ctx: ApplicationContext, channel: discord.VoiceChannel)
+    _move(ctx: ApplicationContext, channel: discord.VoiceChannel)
         Перемещает всех пользователей в голосовом канале, в другой
         голосовой канал на выбор
-    _kick(self, ctx: ApplicationContext, user: discord.Member)
+    _kick(ctx: ApplicationContext, user: discord.Member)
         Кикает пользователя с сервера
-    _ban(self, ctx: ApplicationContext, user: discord.Member)
+    _ban(ctx: ApplicationContext, user: discord.Member)
         Банит пользователя с сервера
-    _timeout(self, ctx: ApplicationContext, user: discord.Member, timestamp: str)
+    _timeout(ctx: ApplicationContext, user: discord.Member, timestamp: str)
         Временное ограничение доступа к серверу определенному пользователю
     """
        
