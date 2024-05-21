@@ -48,7 +48,7 @@ class Music(commands.Cog):
         Подключен ли бот к ВКонтаке
     music_queue : list
         Текущая музыкальная очередь
-    seeking : set
+    seeking : dict
         Информация, используемая при перемотке трека
     repeat_all : bool
         Включен ли повтор всей очереди
