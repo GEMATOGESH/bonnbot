@@ -29,12 +29,8 @@ class Admin(commands.Cog):
 
     Атрибуты
     --------
-    bot : discord.Bot
-        Дискордовский бот
     guild_ids : list
         Список идентификаторов серверов, к которым подключен бот
-    owner_id : str
-        Идентификатор владельца бота, для работы команды say
 
     Методы
     ------
@@ -56,7 +52,7 @@ class Admin(commands.Cog):
     _timeout(self, ctx: ApplicationContext, user: discord.Member, timestamp: str)
         Временное ограничение доступа к серверу определенному пользователю
     """
-
+       
     guild_ids = []
 
     def __init__(self, bot: discord.bot.Bot):

@@ -28,8 +28,6 @@ class Default(commands.Cog):
 
     Атрибуты
     --------
-    bot : discord.Bot
-        Дискордовский бот
     guild_ids : list
         Список идентификаторов серверов, к которым подключен бот
 
@@ -180,8 +178,7 @@ class Default(commands.Cog):
             Контекст взаимодействия с командой бота 
         """
 
-        view = MineSweeperView()
-        await ctx.respond(view=view)
+        await ctx.respond(view=MineSweeperView())
 
     @commands.slash_command(name="rockpaperscissors", description="Игра Камень, Ножницы, Бумага.")
     async def _rockpaperscissors(self, ctx: ApplicationContext):
@@ -193,53 +190,28 @@ class Default(commands.Cog):
             Контекст взаимодействия с командой бота 
         """
 
-        view = RockPaperScissorsView()
-        await ctx.respond(view=view)
+        await ctx.respond(view=RockPaperScissorsView())
 
 
 class MineSweeperView(discord.ui.View):
     """
     Класс кнопок для игры в Сапера
 
-    Атрибуты
-    --------
-    number_of_mines : int
-        Число мин в игре
-    field_x : int
-        Длина поля по X
-    field_y : int
-        Длина поля по Y
-    field : list[list[int | str]]
-        Созданное игровое поле
-    player_field : list[list[int | str]]
-        Текущее поле со стороны игрока
-    revealed_tiles : int
-        Количество открытых клеток - для проверки конца игры
-
     Методы
     ------
-    async def _print_classified_field(self)
+    _print_classified_field(self)
         Вывод в консоль игрового поля
-    async def _reveal_all(self)
+    _reveal_all(self)
         Открытие всех клеток игрового поля, обычно - в конце игры
-    async def _reveal(self, i: int, j: int)
+    _reveal(self, i: int, j: int)
         Рекурсивное открытие клеток поля
-    async def _button_update(self)
+    _button_update(self)
         Обновление стиля кнопки в соответствии с ситуацией в игре
-    async def _button_callback(self, interaction: discord.Interaction)
+    _button_callback(self, interaction: discord.Interaction)
         Обработчик нажатия на кнопки
-    def _create_minefield(self)
+    _create_minefield(self)
         Создание игрового поля, заполнение его минами и числами
     """
-
-    number_of_mines = 5
-    field_x = 5
-    field_y = 5
-
-    user = None
-    field = None
-    player_field = None
-    revealed_tiles = 0
 
     def __init__(self):
         """ Первичная инициализация игры: создание кнопок и добавление
@@ -247,6 +219,13 @@ class MineSweeperView(discord.ui.View):
         """
 
         super().__init__()
+
+        self.user = None
+        self.number_of_mines = 5
+        self.field_x = 5
+        self.field_y = 5
+        self.revealed_tiles = 0
+
         self._create_minefield()
 
         btns = [None] * self.field_x
@@ -379,14 +358,14 @@ class MineSweeperView(discord.ui.View):
         await interaction.response.edit_message(view=self)
 
         if not res:
-            await interaction.respond("BOOM!")
+            await interaction.respond("BOOM!", ephemeral=True)
             return
 
         if self.revealed_tiles == self.field_x * self.field_y - self.number_of_mines:
             await self._reveal_all()
             await self._button_update()
             await interaction.response.edit_message(view=self)
-            await interaction.respond("WIN!")
+            await interaction.respond("WIN!", ephemeral=True)
 
     def _create_minefield(self):
         """Создание игрового поля, заполнение его минами и числами
@@ -448,24 +427,21 @@ class RockPaperScissorsView(discord.ui.View):
     """
     Класс кнопок для игры в Камень, Ножницы, Бумагу
 
-    Атрибуты
-    --------
-    players : list[dict, dict]
-        Информация об игроках и их выборе
-
     Методы
     ------
     _button_callback(interaction: discord.Interaction)
         Обработка нажатий на кнопки, вывод результатов игры по окончанию
     """
 
-    players = [{"id": None, "choice": None}, {"id": None, "choice": None}]
-
     def __init__(self):
         """ Первичная инициализация игры.
         """
 
         super().__init__()
+
+        self.players = [{"id": None, "choice": None},
+                        {"id": None, "choice": None}]
+
         styles = [discord.ButtonStyle.green, discord.ButtonStyle.red]
         for i in range(0, 2):
             rock = discord.ui.Button(label=f"Игрок {str(

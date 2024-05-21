@@ -37,31 +37,8 @@ class Music(commands.Cog):
 
     Атрибуты
     --------
-    bot : discord.Bot
-        Дискордовский бот
     guild_ids : list
         Список идентификаторов серверов, к которым подключен бот
-    vk_audio : VkAudio
-        Объект VkAudio для поиска и получения ссылок на аудиозаписи в
-        социальной сети ВКонтакте
-    is_vk_connected : bool
-        Подключен ли бот к ВКонтаке
-    music_queue : list
-        Текущая музыкальная очередь
-    seeking : dict
-        Информация, используемая при перемотке трека
-    repeat_all : bool
-        Включен ли повтор всей очереди
-    repeat_one : bool
-        Включен ли повтор текущего трека
-    current_view : MusicView
-        Текущий набор кнопок под сообщением
-    cookie : str
-        Путь к файлу куки YouTube
-    ffmpeg_path : str
-        Путь к ffmpeg.exe
-    valid_channel_id : str
-        Канал, в котором доступны для использования музыкальные команды
 
     Методы
     ------
@@ -108,17 +85,8 @@ class Music(commands.Cog):
     _nowplaying(self, ctx: ApplicationContext)
         Отображение информации о текущем треке
     """
-
-    bot = None
+    
     guild_ids = []
-    vk_audio = None
-    is_vk_connected = False
-
-    music_queue = []
-    seeking = {"is_seeking": False, "timestamp": None, "current_time": None}
-    repeat_all = False
-    repeat_one = False
-    current_view = None
 
     def __init__(self, bot: discord.bot.Bot):
         """
@@ -131,6 +99,14 @@ class Music(commands.Cog):
         """
 
         self.bot = bot
+        self.vk_audio = None
+        self.is_vk_connected = False
+
+        self.music_queue = []
+        self.seeking = {"is_seeking": False, "timestamp": None, "current_time": None}
+        self.repeat_all = False
+        self.repeat_one = False
+        self.current_view = None
 
         for guild in bot.guilds:
             self.guild_ids.append(guild.id)
