@@ -78,50 +78,54 @@ class Default(commands.Cog):
         """
 
         num = random.randint(1, arg)
-        message = "Все мы игрушки в руках судьбы, <...> и теперь наше "\
-            "будущее зависит от того, как лягут игральные кости."\
-            "Не дрогнет ли рука провидения?... \n"
-        message += "Выпало " + str(num)
-
+        message = "*Все мы игрушки в руках судьбы, <...> и"\
+                  "теперь наше будущее зависит от того, "\
+                  "как лягут игральные кости."\
+                  "Не дрогнет ли рука провидения?..*\n"\
+                 f"Выпало **{str(num)}**"
         match num:
             case 1:
-                message += ". Кол!"
+                message += "\n*Кол!*"
             case 3:
-                message += ". Трое!"
+                message += "\n*Трое!*"
             case 10:
-                message += ". Бычий глаз!"
+                message += "\n*Бычий глаз!*"
             case 11:
-                message += ". Барабанные палочки!"
+                message += "\n*Барабанные палочки!*"
             case 12:
-                message += ". Дюжина!"
+                message += "\n*Дюжина!*"
             case 13:
-                message += ". Чертова дюжина!"
+                message += "\n*Чертова дюжина!*"
             case 18:
-                message += ". В первый раз!"
+                message += "\n*В первый раз!*"
             case 22:
-                message += ". Утята!"
+                message += "\n*Утята!*"
             case 25:
-                message += ". Опять 25!"
+                message += "\n*Опять 25!*"
             case 44:
-                message += ". Стульчики!"
+                message += "\n*Стульчики!*"
             case 50:
-                message += ". Полста!"
+                message += "\n*Полста!*"
             case 55:
-                message += ". Перчатки!"
+                message += "\n*Перчатки!*"
             case 66:
-                message += ". Валенки!"
+                message += "\n*Валенки!*"
             case 69:
-                message += ". Nice!"
+                message += "\n*Nice!*"
             case 77:
-                message += ". Топорики!"
+                message += "\n*Топорики!*"
             case 88:
-                message += ". Бабушка!"
+                message += "\n*Бабушка!*"
             case 89:
-                message += ". Дедушкин сосед!"
+                message += "\n*Дедушкин сосед!*"
             case 90:
-                message += ". Дедушка!"
+                message += "\n*Дедушка!*"
 
-        await ctx.respond(message)
+        
+        embed = discord.Embed(title=f"Подкидывание кубика до {str(arg)}",
+                              color=discord.Colour.blurple(),
+                              description=message)
+        await ctx.respond(embed=embed)
 
     @commands.slash_command(name="flip", description="Подкидывает монетку.")
     async def _flip(self, ctx: ApplicationContext):
@@ -135,17 +139,20 @@ class Default(commands.Cog):
 
         num = random.randint(0, 1)
 
-        message = "Счастье и горе — это две стороны монеты, "\
-            "которую жизнь периодически ставит на ребро...\n"
+        message = "*Счастье и горе — это две стороны монеты, "\
+            "которую жизнь периодически ставит на ребро...*\n"
 
         if not num:
-            message += ctx.author.mention + ", выпал орел!"
+            message += "Выпал **орел**!"
         elif num:
-            message += ctx.author.mention + ", выпала режка!"
+            message += "Выпала **режка**!"
         else:
             message += "Выпало... ребро?"
 
-        await ctx.respond(message)
+        embed = discord.Embed(title="Подкидывание монетки",
+                              color=discord.Colour.blurple(),
+                              description=message)
+        await ctx.respond(embed=embed)
 
     @commands.slash_command(name="deafen", description="Выключение/включение себе входящего звука.")
     async def _deafen(self, ctx: ApplicationContext):
@@ -160,14 +167,18 @@ class Default(commands.Cog):
 
         user = ctx.user
 
+        message = None
         if user.voice.deaf:
             await user.edit(deafen=False)
-            await ctx.respond(f"Включил входящий звук {user.mention} ({user.name}).",
-                              ephemeral=True)
+            message = "Включил"
         else:
             await user.edit(deafen=True)
-            await ctx.respond(f"Выключил входящий звук {user.mention} ({user.name}).",
-                              ephemeral=True)
+            message = "Выключил"
+            
+        embed = discord.Embed(title="Входящий звук",
+                              color=discord.Colour.blurple(),
+                              description=f":headphones: {message} входящий звук.")
+        await ctx.respond(embed=embed, ephemeral=True)
 
     @commands.slash_command(name="minesweeper", description="Игра Сапер, к сожалению только 5 на 5.")
     async def _minesweeper(self, ctx: ApplicationContext):
