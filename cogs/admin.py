@@ -111,16 +111,23 @@ class Admin(commands.Cog):
             Пользователь, которому выключит/включит микрофон
         """
 
+        embed = None
         if user.voice.mute:
             await user.edit(mute=False)
-            await ctx.respond(f"Включил микрофон {user.mention} ({user.name}).", 
-                          ephemeral=True)
+            
+            embed = discord.Embed(title="Исходящий звук",
+                                  color=discord.Colour.green(),
+                                  description=f"Включил микрофон {user.mention}.")
         else:
             await user.edit(mute=True)
-            await ctx.respond(f"Выключил микрофон {user.mention} ({user.name}).", 
-                          ephemeral=True)
+            
+            embed = discord.Embed(title="Исходящий звук",
+                                  color=discord.Colour.red(),
+                                  description=f"Выключил микрофон {user.mention}.")
+        
+        await ctx.respond(embed=embed, ephemeral=True)
 
-    @commands.slash_command(name="mute_all", guild_ids=guild_ids, description="Управление микрофоном всех(!) пользователей в текущем голосовом канале.")
+    @commands.slash_command(name="mute_all", guild_ids=guild_ids, description="Управление микрофоном всех (кроме администраторов) пользователей в текущем голосовом канале.")
     @discord.default_permissions(administrator=True)
     @option("switch", description="Вкл/Выкл?", choices=["on", "off"])
     async def _mute_all(self, ctx: ApplicationContext, switch: str):
@@ -139,18 +146,23 @@ class Admin(commands.Cog):
         members = channel.members
 
         if switch == "on":
+            embed = discord.Embed(title=":microphone2: Выключил всем микрофоны.",
+                                  color=discord.Colour.red())
+            await ctx.respond(embed=embed)
+            
             file = images.get_random_image("images\\mute\\")
             if file is not None:
-                await ctx.respond(file=file)
-            else:
-                await ctx.respond("Помолчим.")
+                await ctx.send(file=file)
 
             for member in members:
                 if not member.guild_permissions.administrator:
                     await member.edit(mute=True)
 
         elif switch == "off":
-            await ctx.respond("Да будет звук.")
+            embed = discord.Embed(title=":microphone2: Включил всем микрофоны.",
+                                  color=discord.Colour.green())
+            await ctx.respond(embed=embed)
+            
             for member in members:
                 if not member.guild_permissions.administrator:
                     await member.edit(mute=False)
@@ -174,12 +186,14 @@ class Admin(commands.Cog):
         members = current_channel.members
         guild = self.bot.get_guild(ctx.guild.id)
 
+        embed = discord.Embed(title=f":airplane_arriving: Переезд в {channel.mention}.",
+                              color=discord.Colour.blurple())
+        await ctx.respond(embed=embed)
+        
         file = images.get_random_image("images\\move\\")
         if file is not None:
-            await ctx.respond("Переезд в " + channel.mention, file=file)
-        else:
-            await ctx.respond("Переезд в " + channel.mention)
-
+            await ctx.send(file=file)
+            
         for member in members:
             user = await guild.fetch_member(member.id)
             await user.move_to(channel)
@@ -199,8 +213,11 @@ class Admin(commands.Cog):
         """
 
         await user.kick()
-        await ctx.respond(f"{user.mention} ({user.name}) был кикнут.", 
-                          ephemeral=True)
+        
+        embed = discord.Embed(title=f":exclamation: {user.mention} ({user.name}) был кикнут с сервера.",
+                              color=discord.Colour.red(),
+                              ephemeral=True)
+        await ctx.respond(embed=embed)
             
     @commands.slash_command(name="ban", guild_ids=guild_ids, description="Банит пользователя с сервера без возможности возвращения по приглашению.")
     @discord.default_permissions(administrator=True)
@@ -217,8 +234,10 @@ class Admin(commands.Cog):
         """
 
         await user.ban()
-        await ctx.respond(f"{user.mention} ({user.name}) был забанен.", 
-                          ephemeral=True)
+        embed = discord.Embed(title=f":bangbang: {user.mention} ({user.name}) был забанен на сервере.",
+                              color=discord.Colour.red(),
+                              ephemeral=True)
+        await ctx.respond(embed=embed)
             
     @commands.slash_command(name="timeout", guild_ids=guild_ids, description="Временное блокирование пользователя на сервере.")
     @discord.default_permissions(administrator=True)
@@ -240,6 +259,9 @@ class Admin(commands.Cog):
         t = datetime.datetime.strptime(timestamp, '%H:%M:%S')
         delta = datetime.timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
         await user.timeout_for(duration=delta)
-        await ctx.respond(f"Пользователю {user.mention} ({user.name}) "\
-            f"был ограничен доступ к серверу на {timestamp}",
-            ephemeral=True)
+        
+        embed = discord.Embed(title=f":warning: Пользователю {user.mention} ({user.name}) "\
+                                    f"был ограничен доступ к серверу на ``{timestamp}``",
+                              color=discord.Colour.red(),
+                              ephemeral=True)
+        await ctx.respond(embed=embed)

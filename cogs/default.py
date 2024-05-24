@@ -5,7 +5,6 @@ import copy
 from discord import option
 from discord import ApplicationContext
 from discord.ext import commands
-from discord.ui.item import Item
 
 
 def setup(bot: discord.Bot):
@@ -170,10 +169,10 @@ class Default(commands.Cog):
         message = None
         if user.voice.deaf:
             await user.edit(deafen=False)
-            message = "Включил"
+            message = "**Включил**"
         else:
             await user.edit(deafen=True)
-            message = "Выключил"
+            message = "**Выключил**"
             
         embed = discord.Embed(title="Входящий звук",
                               color=discord.Colour.blurple(),
@@ -250,6 +249,7 @@ class MineSweeperView(discord.ui.View):
         self.field_x = 5
         self.field_y = 5
         self.revealed_tiles = 0
+        self.turns = 0
 
         self._create_minefield()
 
@@ -371,26 +371,38 @@ class MineSweeperView(discord.ui.View):
             self.user = interaction.user
         else:
             if self.user != interaction.user:
-                await interaction.respond("Найди себе свое минное поле.", ephemeral=True)
+                await interaction.respond("Найди себе свое минное поле.", 
+                                          ephemeral=True)
                 return
+
+        self.turns += 1
 
         id = int(interaction.custom_id)
         i = id // 5
         j = id % 5
 
         res = await self._reveal(i, j)
-        await self._button_update()
-        await interaction.response.edit_message(view=self)
 
+        embed = None
         if not res:
-            await interaction.respond("BOOM!", ephemeral=True)
-            return
+            embed = discord.Embed(title="BOOM! :boom:",
+                                  color=discord.Colour.red(),
+                                  description=f"Игрок {self.user.mention}\n"\
+                                              f"Количество ходов: **{self.turns}**")
 
         if self.revealed_tiles == self.field_x * self.field_y - self.number_of_mines:
             await self._reveal_all()
-            await self._button_update()
-            await interaction.response.edit_message(view=self)
-            await interaction.respond("WIN!", ephemeral=True)
+            
+            embed = discord.Embed(title="Победа! :crown:",
+                                  color=discord.Colour.gold(),
+                                  description=f"Игрок {self.user.mention}\n"\
+                                              f"Количество ходов: **{self.turns}**")
+            
+        await self._button_update()
+        await interaction.response.edit_message(view=self)
+        
+        if embed is not None:
+            await interaction.respond(embed=embed)
 
     def _create_minefield(self):
         """Создание игрового поля, заполнение его минами и числами
@@ -494,8 +506,10 @@ class RockPaperScissorsView(discord.ui.View):
             Объект взаимодействия с кнопкой
         """
 
-        if interaction.user == self.players[0]["id"] or interaction.user == self.players[1]["id"]:
-            await interaction.respond(f"{interaction.user.mention}, ты уже сделал выбор.", ephemeral=True)
+        if interaction.user == self.players[0]["id"] or \
+           interaction.user == self.players[1]["id"]:
+            await interaction.respond(f"{interaction.user.mention}, ты уже сделал выбор.", 
+                                      ephemeral=True)
             return
 
         player = int(interaction.custom_id[0])
@@ -517,36 +531,38 @@ class RockPaperScissorsView(discord.ui.View):
 
         await interaction.response.edit_message(view=self)
 
-        if self.players[0]["id"] is not None and self.players[1]["id"] is not None:
-            result = 2
+        if self.players[0]["id"] is not None and\
+           self.players[1]["id"] is not None:
+            message = f":crown: Победил {self.players[1]["id"].mention}!"
+            color = discord.Colour.red()
 
             if self.players[0]["choice"] == self.players[1]["choice"]:
-                result = 0
+                message = ":flag_white: Победила дружба!"
+                color = discord.Colour.lighter_grey()
             elif self.players[0]["choice"] == "камень":
                 if self.players[1]["choice"] == "ножницы":
-                    result = 1
+                    message = f":crown: Победил {self.players[0]["id"].mention}!"
+                    color = discord.Colour.green()
             elif self.players[0]["choice"] == "ножницы":
                 if self.players[1]["choice"] == "бумагу":
-                    result = 1
+                    message = f":crown: Победил {self.players[0]["id"].mention}!"
+                    color = discord.Colour.green()
             elif self.players[0]["choice"] == "бумагу":
                 if self.players[1]["choice"] == "камень":
-                    result = 1
-
-            await interaction.channel.send(f"{self.players[0]["id"].mention} выбрал {self.players[0]["choice"]}.")
-            await interaction.channel.send(f"{self.players[1]["id"].mention} выбрал {self.players[1]["choice"]}.")
-
-            match result:
-                case 0:
-                    await interaction.channel.send("Победила дружба!")
-                case 1:
-                    await interaction.channel.send(f"Победил {self.players[0]["id"].mention}!")
-                case 2:
-                    await interaction.channel.send(f"Победил {self.players[1]["id"].mention}!")
+                    message = f":crown: Победил {self.players[0]["id"].mention}!"
+                    color = discord.Colour.green()                    
+            
+            embed = discord.Embed(title="🪨✂️📜",
+                                  color=color,
+                                  description=f"{self.players[0]["id"].mention} выбрал {self.players[0]["choice"]}.\n"\
+                                              f"{self.players[1]["id"].mention} выбрал {self.players[1]["choice"]}.\n"\
+                                              f"\n{message}")
+            await interaction.respond(embed=embed)
 
 
 class TicTacToe(discord.ui.View):
     """
-    Класс кнопок для игры в Камень, Ножницы, Бумагу
+    Класс кнопок для игры в Крестики-Нолики
 
     Методы
     ------
@@ -599,7 +615,8 @@ class TicTacToe(discord.ui.View):
         """
 
         if len(self.players) < 2 or interaction.user in self.players:
-            if len(self.players) == 0 or len(self.players) == 1 and interaction.user not in self.players:
+            if len(self.players) == 0 or len(self.players) == 1 and\
+               interaction.user not in self.players:
                 self.players.append(interaction.user)
 
             if interaction.user in self.players:
@@ -658,11 +675,11 @@ class TicTacToe(discord.ui.View):
                     await interaction.response.edit_message(view=self)
 
                     if is_ended:
-                        await interaction.respond(f"Победил {interaction.user.mention}.")
+                        await interaction.respond(f":crown: Победил {interaction.user.mention}.")
 
                     self.turn += 1
                     if self.turn == 9:
-                        await interaction.respond(f"Победила дружба.")
+                        await interaction.respond(f":flag_white: Победила дружба.")
 
                     return
                 else:
