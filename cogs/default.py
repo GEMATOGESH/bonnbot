@@ -81,7 +81,7 @@ class Default(commands.Cog):
                   "теперь наше будущее зависит от того, "\
                   "как лягут игральные кости."\
                   "Не дрогнет ли рука провидения?..*\n"\
-                 f"Выпало **{str(num)}**"
+            f"Выпало **{str(num)}**"
         match num:
             case 1:
                 message += "\n*Кол!*"
@@ -120,7 +120,6 @@ class Default(commands.Cog):
             case 90:
                 message += "\n*Дедушка!*"
 
-        
         embed = discord.Embed(title=f"Подкидывание кубика до {str(arg)}",
                               color=discord.Colour.blurple(),
                               description=message)
@@ -173,7 +172,7 @@ class Default(commands.Cog):
         else:
             await user.edit(deafen=True)
             message = "**Выключил**"
-            
+
         embed = discord.Embed(title="Входящий звук",
                               color=discord.Colour.blurple(),
                               description=f":headphones: {message} входящий звук.")
@@ -190,7 +189,7 @@ class Default(commands.Cog):
             Контекст взаимодействия с командой бота 
         """
 
-        await ctx.respond(view=MineSweeperView())
+        await ctx.respond(view=MineSweeperView(ctx.user))
 
     @commands.slash_command(name="rockpaperscissors", description="Игра Камень, Ножницы, Бумага.")
     async def _rockpaperscissors(self, ctx: ApplicationContext):
@@ -214,7 +213,20 @@ class Default(commands.Cog):
             Контекст взаимодействия с командой бота 
         """
 
-        await ctx.respond(view=TicTacToe())
+        await ctx.respond(view=TicTacToeView())
+
+    @commands.slash_command(name="blackjack", description="Игра в блекджек (американские правила).")
+    async def _blackjack(self, ctx: ApplicationContext):
+        """Игра в блекджек
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота 
+        """
+
+        view = BlackjackView(ctx.user)
+        await view.first_check(ctx)
 
 
 class MineSweeperView(discord.ui.View):
@@ -237,14 +249,14 @@ class MineSweeperView(discord.ui.View):
         Создание игрового поля, заполнение его минами и числами
     """
 
-    def __init__(self):
+    def __init__(self, user):
         """ Первичная инициализация игры: создание кнопок и добавление
         их в вью.
         """
 
         super().__init__()
 
-        self.user = None
+        self.user = user
         self.number_of_mines = 5
         self.field_x = 5
         self.field_y = 5
@@ -289,7 +301,7 @@ class MineSweeperView(discord.ui.View):
             for j in range(0, self.field_y):
                 self.player_field[i][j] = self.field[i][j]
 
-    async def _reveal(self, i: int, j: int):
+    async def _reveal(self, i: int, j: int) -> bool:
         """Рекурсивное открытие клетки по координатам (i, j)
 
         Параметры
@@ -367,13 +379,10 @@ class MineSweeperView(discord.ui.View):
             Объект взаимодействия с кнопкой
         """
 
-        if self.user is None:
-            self.user = interaction.user
-        else:
-            if self.user != interaction.user:
-                await interaction.respond("Найди себе свое минное поле.", 
-                                          ephemeral=True)
-                return
+        if self.user != interaction.user:
+            await interaction.respond("Найди себе свое минное поле.",
+                                      ephemeral=True)
+            return
 
         self.turns += 1
 
@@ -387,20 +396,20 @@ class MineSweeperView(discord.ui.View):
         if not res:
             embed = discord.Embed(title="BOOM! :boom:",
                                   color=discord.Colour.red(),
-                                  description=f"Игрок {self.user.mention}\n"\
-                                              f"Количество ходов: **{self.turns}**")
+                                  description=f"Игрок {self.user.mention}\n"
+                                  f"Количество ходов: **{self.turns}**")
 
         if self.revealed_tiles == self.field_x * self.field_y - self.number_of_mines:
             await self._reveal_all()
-            
+
             embed = discord.Embed(title="Победа! :crown:",
                                   color=discord.Colour.gold(),
-                                  description=f"Игрок {self.user.mention}\n"\
-                                              f"Количество ходов: **{self.turns}**")
-            
+                                  description=f"Игрок {self.user.mention}\n"
+                                  f"Количество ходов: **{self.turns}**")
+
         await self._button_update()
         await interaction.response.edit_message(view=self)
-        
+
         if embed is not None:
             await interaction.respond(embed=embed)
 
@@ -508,7 +517,7 @@ class RockPaperScissorsView(discord.ui.View):
 
         if interaction.user == self.players[0]["id"] or \
            interaction.user == self.players[1]["id"]:
-            await interaction.respond(f"{interaction.user.mention}, ты уже сделал выбор.", 
+            await interaction.respond(f"{interaction.user.mention}, ты уже сделал выбор.",
                                       ephemeral=True)
             return
 
@@ -541,26 +550,33 @@ class RockPaperScissorsView(discord.ui.View):
                 color = discord.Colour.lighter_grey()
             elif self.players[0]["choice"] == "камень":
                 if self.players[1]["choice"] == "ножницы":
-                    message = f":crown: Победил {self.players[0]["id"].mention}!"
+                    message = ":crown: Победил "\
+                        f"{self.players[0]["id"].mention}!"
                     color = discord.Colour.green()
             elif self.players[0]["choice"] == "ножницы":
                 if self.players[1]["choice"] == "бумагу":
-                    message = f":crown: Победил {self.players[0]["id"].mention}!"
+                    message = ":crown: Победил "\
+                        f"{self.players[0]["id"].mention}!"
                     color = discord.Colour.green()
             elif self.players[0]["choice"] == "бумагу":
                 if self.players[1]["choice"] == "камень":
-                    message = f":crown: Победил {self.players[0]["id"].mention}!"
-                    color = discord.Colour.green()                    
-            
+                    message = f":crown: Победил "\
+                        f"{self.players[0]["id"].mention}!"
+                    color = discord.Colour.green()
+
+            desc = f"{self.players[0]["id"].mention} выбрал "\
+                f"{self.players[0]["choice"]}.\n "\
+                f"{self.players[1]["id"].mention} выбрал "\
+                f"{self.players[1]["choice"]}.\n "\
+                f"\n{message}"
+
             embed = discord.Embed(title="🪨✂️📜",
                                   color=color,
-                                  description=f"{self.players[0]["id"].mention} выбрал {self.players[0]["choice"]}.\n"\
-                                              f"{self.players[1]["id"].mention} выбрал {self.players[1]["choice"]}.\n"\
-                                              f"\n{message}")
+                                  description=desc)
             await interaction.respond(embed=embed)
 
 
-class TicTacToe(discord.ui.View):
+class TicTacToeView(discord.ui.View):
     """
     Класс кнопок для игры в Крестики-Нолики
 
@@ -687,3 +703,336 @@ class TicTacToe(discord.ui.View):
                     return
 
         await interaction.respond("Ты не участвуешь в игре.", ephemeral=True)
+
+
+class BlackjackView(discord.ui.View):
+    """
+    Класс кнопок для игры в Крестики-Нолики
+
+    Методы
+    ------
+    _create_deck(self)
+        Создание колды карт, состоящей из 4 стандартных колод
+    _game_start(self)
+        Начало игры, выдача начальных карт дилеру и игроку
+    first_check(self, ctx: ApplicationContext)
+        Первичная проверка конца игры, в случае если у дилера 21
+    _game_results(self, winner: str, color: discord.Color)
+        Составление сообщения конца игры
+    _msg(self, hide=True)
+        Составления сообщения текущего положения игры
+    _get_dealer_hand(self, hide=True)
+        Получение руки дилера в текстовом виде
+    _get_player_hand(self)
+        Получение руки игрока в текстовом виде
+    _score(self, deck, hide=True)
+        Получение счета руки
+    _dealers_turn(self)
+        Итерация ходов дилера до конца игры
+    hit_callback(self, button: discord.ui.Button, interaction: discord.Interaction)
+        Обработка ходов игрока
+    stand_callback(self, button: discord.ui.Button, interaction: discord.Interaction)
+        Обработка хода дилера
+    """
+
+    def __init__(self, user: discord.User):
+        """
+        Параметры
+        ---------
+        user : discord.User
+            Пользователь вызвавщий команду
+
+        Инициализация игры, создание колоды карт
+        """
+
+        super().__init__()
+
+        self.deck = self._create_deck()
+        self.dealer_hand = []
+        self.player_hand = []
+
+        self.player_id = user
+
+        self._game_start()
+
+    def _create_deck(self):
+        """Создание игровой колоды
+
+        Возвращает
+        -------
+        list
+            Массив из словарей, представляющий собой 4 колоды игральных
+            карт
+        """
+
+        suits = [":spades:", ":hearts:", ":clubs:", ":diamonds:"]
+
+        deck = []
+        for suit in suits:
+            for i in range(2, 11):
+                deck.append({"label": f"{i} {suit}", "value": i, "ace": False})
+
+            deck.append({"label": f"Валет {suit}", "value": 10, "ace": False})
+            deck.append({"label": f"Дама {suit}", "value": 10, "ace": False})
+            deck.append({"label": f"Король {suit}", "value": 10, "ace": False})
+
+            deck.append({"label": f"Туз {suit}", "value": 11, "ace": True})
+
+        return deck * 4
+
+    def _game_start(self):
+        """Выдача дилеру и игроку двух карт
+        """
+
+        decks = [self.player_hand, self.dealer_hand]
+        for i in range(0, 2):
+            for _ in range(0, 2):
+                id = random.randint(0, len(self.deck) - 1)
+                decks[i].append(self.deck.pop(id))
+
+    async def first_check(self, ctx: ApplicationContext):
+        """Первичная проверка конца игры в случае если у дилера 21 с
+        первой раздачи
+
+        Параметры
+        ----------
+        ctx : ApplicationContext
+            Контекст команды 
+        """
+
+        if await self._score(self.dealer_hand, False) == 21:
+            embed = await self._game_results("Дилер", discord.Color.red())
+
+            self.children.clear()
+            await ctx.respond(embed=embed, view=self)
+
+        elif await self._score(self.player_hand, False) == 21:
+            embed = await self._dealers_turn()
+
+            self.children.clear()
+            await ctx.response.edit_message(embed=embed, view=self)
+
+        else:
+            embed = await self._msg()
+            await ctx.respond(embed=embed, view=self)
+
+    async def _game_results(self, winner: str, color: discord.Color) -> discord.Embed:
+        """Генерация сообщения о победе
+
+        Параметры
+        ----------
+        winner : str
+            Имя победителя в игре
+        color : discord.Color
+            Цвет сообщения
+
+        Возвращает
+        -------
+        discord.Embed
+            Сообщение о победе
+        """
+
+        embed = await self._msg(hide=False)
+        embed.title = f":crown: {winner}"
+        embed.color = color
+
+        return embed
+
+    async def _msg(self, hide=True) -> discord.Embed:
+        """Генерация сообщения о текущем положении игры
+
+        Параметры
+        ----------
+        hide : bool, optional
+            Скрывать ли первую карту в руке, by default True
+
+        Возвращает
+        -------
+        discord.Embed
+            Сообщение с текущим положением игры
+        """
+
+        embed = discord.Embed(title="Блекджек :spades: :hearts: :clubs: :diamonds:",
+                              color=discord.Color.dark_green())
+        if hide:
+            embed.add_field(name="Рука Дилера",
+                            value=await self._get_dealer_hand(hide=hide) + "\nСчет: ? + " +
+                            str(await self._score(self.dealer_hand, hide=hide)),
+                            inline=False)
+        else:
+            embed.add_field(name="Рука Дилера",
+                            value=await self._get_dealer_hand(hide=hide) + "\nСчет: " +
+                            str(await self._score(self.dealer_hand, hide=hide)),
+                            inline=False)
+
+        embed.add_field(name=f"Рука {self.player_id.display_name}",
+                        value=await self._get_player_hand() + "\nСчет: " +
+                        str(await self._score(self.player_hand, hide=False)),
+                        inline=False)
+        return embed
+
+    async def _get_dealer_hand(self, hide=True) -> str:
+        """Получение текстового описания руки дилера
+
+        Параметры
+        ----------
+        hide : bool, optional
+            Скрывать ли первую карту в руке, by default True
+
+        Возвращает
+        -------
+        str
+            Текстовое описание руки дилера
+        """
+
+        res = ""
+
+        start = 0
+        if hide:
+            res += "?"
+            start = 1
+
+        for i in range(start, len(self.dealer_hand)):
+            if i != 0:
+                res += f", {self.dealer_hand[i]["label"]}"
+            else:
+                res += f"{self.dealer_hand[i]["label"]}"
+
+        return res
+
+    async def _get_player_hand(self) -> str:
+        """Получение текстового описания руки игрока
+
+        Возвращает
+        -------
+        str
+            Текстовое описание руки игрока
+        """
+
+        res = self.player_hand[0]["label"]
+
+        for i in range(1, len(self.player_hand)):
+            res += f", {self.player_hand[i]["label"]}"
+
+        return res
+
+    async def _score(self, deck, hide=True) -> int:
+        """Получение текущего счета колоды
+
+        Параметры
+        ----------
+        deck : list
+            Колода
+        hide : bool, optional
+            Скрывать ли первую карту в руке, by default True
+
+        Возвращает
+        -------
+        int
+            Счет предоставленной колоды
+        """
+
+        res = 0
+        aces = 0
+
+        start = 0
+        if hide:
+            start = 1
+
+        for i in range(start, len(deck)):
+            if deck[i]["ace"]:
+                aces += 1
+
+            res += deck[i]["value"]
+
+        if res > 21:
+            for _ in range(0, aces):
+                res -= 10
+
+                if res <= 21:
+                    break
+
+        return res
+
+    async def _dealers_turn(self) -> discord.Embed:
+        """Итерация хода дилера и получение сообщения о конце игры
+
+        Возвращает
+        -------
+        discord.Embed
+            Сообщение о конце игры
+        """
+
+        dealer_score = await self._score(self.dealer_hand, hide=False)
+        player_score = await self._score(self.player_hand, hide=False)
+
+        while True:
+            if dealer_score < 17:
+                id = random.randint(0, len(self.deck) - 1)
+                self.dealer_hand.append(self.deck.pop(id))
+                dealer_score = await self._score(self.dealer_hand, hide=False)
+            else:
+                break
+
+        embed = None
+        if player_score <= 21 and \
+                (dealer_score < player_score or dealer_score > 21):
+            embed = await self._game_results(self.player_id.display_name, discord.Color.gold())
+
+        elif dealer_score == player_score and dealer_score != 21:
+            embed = await self._game_results("Дружба!", discord.Color.light_gray())
+
+        else:
+            embed = await self._game_results("Дилер", discord.Color.red())
+
+        return embed
+
+    @discord.ui.button(style=discord.ButtonStyle.green, label="Hit")
+    async def hit_callback(self, button: discord.ui.Button, interaction: discord.Interaction):
+        """Обработка хода игрока, когда он берет дополнительную карту
+
+        Параметры
+        ----------
+        button : discord.ui.Button
+            Нажатая кнопка
+        interaction : discord.Interaction
+            Объект взаимодействия с кнопкой
+        """
+
+        if interaction.user != self.user:
+            await interaction.respond("Найди себе свой стол", ephemeral=True)
+            return
+
+        id = random.randint(0, len(self.deck) - 1)
+        self.player_hand.append(self.deck.pop(id))
+
+        score = await self._score(self.player_hand, hide=False)
+        embed = await self._msg()
+
+        if score >= 21:
+            embed = await self._dealers_turn()
+
+            self.children.clear()
+
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(style=discord.ButtonStyle.red, label="Stand")
+    async def stand_callback(self, button: discord.ui.Button, interaction: discord.Interaction):
+        """Обработка хода игрока, когда он закончил набирать карты
+
+        Параметры
+        ----------
+        button : discord.ui.Button
+            Нажатая кнопка
+        interaction : discord.Interaction
+            Объект взаимодействия с кнопкой
+        """
+
+        if interaction.user != self.user:
+            await interaction.respond("Найди себе свой стол", ephemeral=True)
+            return
+
+        embed = await self._dealers_turn()
+        self.children.clear()
+
+        await interaction.response.edit_message(embed=embed, view=self)
