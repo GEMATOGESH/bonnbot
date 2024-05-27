@@ -999,7 +999,7 @@ class BlackjackView(discord.ui.View):
             Объект взаимодействия с кнопкой
         """
 
-        if interaction.user != self.user:
+        if interaction.user != self.player_id:
             await interaction.respond("Найди себе свой стол", ephemeral=True)
             return
 
@@ -1028,7 +1028,7 @@ class BlackjackView(discord.ui.View):
             Объект взаимодействия с кнопкой
         """
 
-        if interaction.user != self.user:
+        if interaction.user != self.player_id:
             await interaction.respond("Найди себе свой стол", ephemeral=True)
             return
 
