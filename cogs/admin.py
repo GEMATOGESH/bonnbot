@@ -51,6 +51,8 @@ class Admin(commands.Cog):
         Банит пользователя с сервера
     _timeout(ctx: ApplicationContext, user: discord.Member, timestamp: str)
         Временное ограничение доступа к серверу определенному пользователю
+    _avatar(self, ctx: ApplicationContext, user: discord.Member, type: str)
+        Получение аватара пользователя
     """
        
     guild_ids = []
@@ -265,3 +267,33 @@ class Admin(commands.Cog):
                               color=discord.Colour.red(),
                               ephemeral=True)
         await ctx.respond(embed=embed)
+            
+    @commands.slash_command(name="avatar", guild_ids=guild_ids, description="Получение аватара пользователя на выбор.")
+    @discord.default_permissions(administrator=True)
+    @option("user", discord.Member, description="Пользователь на выбор, если нет в списке, можно использовать идентификатор пользователя.")
+    @option("type", str, description="Тип автара: основной или серверный", choices=["основной", "серверный"])
+    async def _avatar(self, ctx: ApplicationContext, user: discord.Member, type: str):
+        """Получение аватара пользователя на выбор
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+        user : discord.Member
+            Пользователь, которому ограничит доступ
+        type : str
+            Тип автара: собственный или серверный
+        """
+        
+        if type == "основной":
+            avatar = user.avatar
+            if avatar is not None:
+                await ctx.respond(str(avatar), ephemeral=True)
+            else:
+                await ctx.respond(f"У {user.mention} нет аватара.", ephemeral=True)
+        elif type == "серверный":
+            avatar = user.guild_avatar
+            if avatar is not None:
+                await ctx.respond(str(avatar), ephemeral=True)
+            else:
+                await ctx.respond(f"У {user.mention} нет аватара.", ephemeral=True)
