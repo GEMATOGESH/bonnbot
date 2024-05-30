@@ -51,8 +51,10 @@ class Admin(commands.Cog):
         Банит пользователя с сервера
     _timeout(ctx: ApplicationContext, user: discord.Member, timestamp: str)
         Временное ограничение доступа к серверу определенному пользователю
-    _avatar(self, ctx: ApplicationContext, user: discord.Member, type: str)
+    _avatar_user(self, ctx: ApplicationContext, user: discord.Member, type: str)
         Получение аватара пользователя
+    _avatar_guild(self, ctx: ApplicationContext)
+        Получение аватара текущего сервера
     """
        
     guild_ids = []
@@ -268,11 +270,11 @@ class Admin(commands.Cog):
                               ephemeral=True)
         await ctx.respond(embed=embed)
             
-    @commands.slash_command(name="avatar", guild_ids=guild_ids, description="Получение аватара пользователя на выбор.")
+    @commands.slash_command(name="avatar-user", guild_ids=guild_ids, description="Получение аватара пользователя на выбор.")
     @discord.default_permissions(administrator=True)
     @option("user", discord.Member, description="Пользователь на выбор, если нет в списке, можно использовать идентификатор пользователя.")
     @option("type", str, description="Тип автара: основной или серверный", choices=["основной", "серверный"])
-    async def _avatar(self, ctx: ApplicationContext, user: discord.Member, type: str):
+    async def _avatar_user(self, ctx: ApplicationContext, user: discord.Member, type: str):
         """Получение аватара пользователя на выбор
 
         Параметры
@@ -297,3 +299,20 @@ class Admin(commands.Cog):
                 await ctx.respond(str(avatar), ephemeral=True)
             else:
                 await ctx.respond(f"У {user.mention} нет аватара.", ephemeral=True)
+            
+    @commands.slash_command(name="avatar-guild", guild_ids=guild_ids, description="Получение аватара сервера.")
+    @discord.default_permissions(administrator=True)
+    async def _avatar_guild(self, ctx: ApplicationContext):
+        """Получение аватара текущего сервера
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+        """
+        
+        icon = ctx.guild.icon
+        if icon is not None:
+            await ctx.respond(str(icon), ephemeral=True)
+        else:
+            await ctx.respond(f"У {ctx.guild.name} нет аватара.", ephemeral=True)
