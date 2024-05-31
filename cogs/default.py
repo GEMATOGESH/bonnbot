@@ -47,6 +47,10 @@ class Default(commands.Cog):
         Игра в Камень, Ножницы, Бумага на двоих
     _tictactoe(ctx: ApplicationContext)
         Игра в Крестики-Нолики
+    _color(ctx: ApplicationContext, hex: str)
+        Получение изображение цвета по 16ричному коду
+    _color_random(ctx: ApplicationContext)
+        Получение изображения и кода случайного цвета
     """
 
     guild_ids = []
@@ -248,7 +252,7 @@ class Default(commands.Cog):
         if answer.status_code == 200:
             embed = discord.Embed(title=f"#{hex}",
                               color=discord.Color.from_rgb(r, g, b),
-                              image=f'https://singlecolorimage.com/get/{hex[1:]}/100x100')
+                              image=f'https://singlecolorimage.com/get/{hex}/100x100')
             await ctx.respond(embed=embed)
         else:
             await ctx.respond('Несуществующий цвет. Перепроверь код.')
