@@ -1,6 +1,7 @@
 import discord
 import random
 import copy
+import requests
 
 from discord import option
 from discord import ApplicationContext
@@ -228,6 +229,47 @@ class Default(commands.Cog):
         view = BlackjackView(ctx.user)
         await view.first_check(ctx)
 
+    @commands.slash_command(name="color", description="Изображение соответствующего цвета.")
+    @option("hex", description="16ричный код цвета.", required=True)
+    async def _color(self, ctx: ApplicationContext, hex: str):
+        """Получение цвета по 16ричному коду
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота 
+        hex : str
+            16ричный код цвета
+        """
+
+        answer = requests.get(f'https://singlecolorimage.com/get/{hex}/100x100')
+        r,g,b = tuple(int(hex[i:i+2], 16) for i in (0, 2, 4))
+        
+        if answer.status_code == 200:
+            embed = discord.Embed(title=f"#{hex}",
+                              color=discord.Color.from_rgb(r, g, b),
+                              image=f'https://singlecolorimage.com/get/{hex[1:]}/100x100')
+            await ctx.respond(embed=embed)
+        else:
+            await ctx.respond('Несуществующий цвет. Перепроверь код.')
+
+    @commands.slash_command(name="color-random", description="Получение случайного цвета.")
+    async def _color_random(self, ctx: ApplicationContext):
+        """Получение случайного цвета
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+        """
+        
+        color = discord.Color.random()
+        hex = '#%02x%02x%02x' % (color.r, color.g, color.b)
+        
+        embed = discord.Embed(title=hex,
+                              color=color,
+                              image=f'https://singlecolorimage.com/get/{hex[1:]}/100x100')
+        await ctx.respond(embed=embed)
 
 class MineSweeperView(discord.ui.View):
     """
