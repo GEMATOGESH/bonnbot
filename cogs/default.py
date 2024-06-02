@@ -51,6 +51,8 @@ class Default(commands.Cog):
         Получение изображение цвета по 16ричному коду
     _color_random(ctx: ApplicationContext)
         Получение изображения и кода случайного цвета
+    _color_user(ctx: ApplicationContext, user: discord.Member)
+        Получение отображаемого цвета пользователя
     """
 
     guild_ids = []
@@ -273,6 +275,28 @@ class Default(commands.Cog):
         embed = discord.Embed(title=hex,
                               color=color,
                               image=f'https://singlecolorimage.com/get/{hex[1:]}/100x100')
+        await ctx.respond(embed=embed)
+
+    @commands.slash_command(name="color-user", description="Получение отображаемого цвета пользователя.")
+    @option("user", discord.Member, description="Пользователь на выбор, если нет в списке, можно использовать идентификатор пользователя.")
+    async def _color_user(self, ctx: ApplicationContext, user: discord.Member):
+        """Получение цвета пользователя
+
+        Параметры
+        ---------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+        user : discord.Member
+            Пользователь, цвет которого хотим получить
+        """
+        
+        color = user.color
+        hex = '#%02x%02x%02x' % (color.r, color.g, color.b)
+        
+        embed = discord.Embed(title=hex,
+                              color=color,
+                              image=f'https://singlecolorimage.com/get/{hex[1:]}/100x100'
+                            )
         await ctx.respond(embed=embed)
 
 class MineSweeperView(discord.ui.View):
