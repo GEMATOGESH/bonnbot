@@ -346,7 +346,7 @@ class Music(commands.Cog):
             Номер трека в результате поиска
         """
 
-        if self._is_valid_channel(ctx):
+        if await self._is_valid_channel(ctx):
             if ctx.author.voice is None:
                 await ctx.respond(ctx.author.mention +
                                   ", зайди в голосовой канал.", ephemeral=True)
