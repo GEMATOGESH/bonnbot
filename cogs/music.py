@@ -116,7 +116,7 @@ class Music(commands.Cog):
         vk_password = os.getenv('vk_password')
         self.cookie = os.getenv('cookie')
         self.ffmpeg_path = os.getenv('ffmpeg_path')
-        self.valid_channel_id = os.getenv('valid_channel_id')
+        self.valid_channel_id = int(os.getenv('valid_channel_id'))
 
         if vk_login is not None and vk_password is not None:
             vk_session = vk_api.VkApi(
@@ -185,7 +185,7 @@ class Music(commands.Cog):
             await ctx.respond("Не тот канал.", ephemeral=True)
             return False
 
-    async def _is_playing(self, ctx: ApplicationContext) -> bool:
+    async def _is_playing(self, ctx: ApplicationContext, show_msg=True) -> bool:
         """Проверяет играет ли бот в голосовом канале.
         Если бот не играет - сообщает об этом пользователю.
 
@@ -202,13 +202,16 @@ class Music(commands.Cog):
 
         voice_client = discord.utils.get(
             self.bot.voice_clients, guild=ctx.guild)
+        
         if voice_client is not None:
             return True
         else:
-            await ctx.respond("Я даже не играю.", ephemeral=True)
+            if show_msg:
+                await ctx.respond("Я даже не играю.", ephemeral=True)
+                
             return False
 
-    async def _is_same_channel(ctx: ApplicationContext) -> bool:
+    async def _is_same_channel(self, ctx: ApplicationContext) -> bool:
         """Проверяет играет ли бот в голосовом канале.
         отличном от голового канала пользователя. Если канал отличен -
         сообщает об этом пользователю
@@ -225,7 +228,7 @@ class Music(commands.Cog):
         """
 
         voice_client = ctx.guild.voice_client
-        if voice_client.channel != ctx.author.voice.channel:
+        if voice_client is not None and voice_client.channel != ctx.author.voice.channel:
             await ctx.respond("Я играю в другом канале.", ephemeral=True)
             return False
 
@@ -295,7 +298,7 @@ class Music(commands.Cog):
         message.append("Чел, сейчас бы слушать это в " +
                        str(date.today().year) + " году...")
         message.append("У тебя настолько плохой вкус что ты слушаешь ЭТО?..")
-        return message.choice()
+        return random.choice(message)
 
     def _get_timestamp(self, is_seeking=False) -> str:
         """Получение отметки времени играющего трека
@@ -352,11 +355,8 @@ class Music(commands.Cog):
                                   ", зайди в голосовой канал.", ephemeral=True)
                 return
 
-            if await self._is_playing(ctx):
+            if await self._is_playing(ctx, show_msg=False) and not await self._is_same_channel(ctx):
                 return
-            else:
-                if not await self._is_same_channel(ctx):
-                    return
 
             if platform == "vk":
                 if self.is_vk_connected:
@@ -379,6 +379,7 @@ class Music(commands.Cog):
                 voice = ctx.guild.voice_client
                 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -nostats -loglevel 0',
                                   'options': '-vn'}
+                
                 voice.play(discord.FFmpegPCMAudio(executable=self.ffmpeg_path,
                                                   source=self.music_queue[0]["link"],
                                                   **FFMPEG_OPTIONS),
@@ -408,7 +409,7 @@ class Music(commands.Cog):
             Запустилось ли проигрывание трека
         """
 
-        await ctx.respond(self._start_message(), ephemeral=True)
+        await ctx.respond(self._start_message())
 
         # TODO: найти причину почему иногда требуется перезагрузка бота для работы музыки с ВК
         mas = self.vk_audio.search(q=music, count=1, offset=(index - 1))
@@ -472,7 +473,7 @@ class Music(commands.Cog):
         ydl_opts = {'format': 'bestaudio', 'cookiefile': self.cookie,
                     'cachedir': False}
 
-        await ctx.respond(self._start_message(), ephemeral=True)
+        await ctx.respond(self._start_message())
 
         regex = re.compile(
             r'^(?:http|ftp)s?://'
@@ -569,7 +570,7 @@ class Music(commands.Cog):
 
                 if self.seeking["is_seeking"]:
                     FFMPEG_OPTIONS['options'] = '-vn -ss ' + \
-                        str(self.seeking["timestamp"].time())
+                        str(self.seeking["timestamp"].time())                        
 
                 voice.play(discord.FFmpegPCMAudio(executable=self.ffmpeg_path,
                                                   source=self.music_queue[0]["link"],
@@ -588,8 +589,9 @@ class Music(commands.Cog):
                     self.seeking["current_time"] = None
         else:
             if voice is not None:
-
-                del self.music_queue[0]
+                if len(self.music_queue) > 0:
+                    del self.music_queue[0]
+                    
                 asyncio.run_coroutine_threadsafe(
                     self.current_view.message.edit(view=None), self.bot.loop)
                 asyncio.run_coroutine_threadsafe(
@@ -964,7 +966,7 @@ class MusicView(discord.ui.View):
 
         return True
 
-    async def _is_same_channel(interaction: discord.Interaction) -> bool:
+    async def _is_same_channel(self, interaction: discord.Interaction) -> bool:
         """Проверяет играет ли бот в голосовом канале.
         отличном от голового канала пользователя. Если канал отличен -
         сообщает об этом пользователю
@@ -987,7 +989,7 @@ class MusicView(discord.ui.View):
 
         return True
 
-    async def _is_in_voice(interaction: discord.Interaction) -> bool:
+    async def _is_in_voice(self, interaction: discord.Interaction) -> bool:
         """Проверяет находится ли пользователь в голосовом канале
 
         Параметры
@@ -1038,11 +1040,11 @@ class MusicView(discord.ui.View):
                                   "Заказал " + (self.music.music_queue[0]["user"]))
             await interaction.response.send_message(embed=embed)
 
-            await voice_client.disconnect()
-
             self.music.music_queue.clear()
             self.music.repeat_one = False
             self.music.repeat_all = False
+
+            await voice_client.disconnect()
 
             await self.message.edit(view=None)
 

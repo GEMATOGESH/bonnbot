@@ -199,9 +199,12 @@ class Admin(commands.Cog):
             await ctx.send(file=file)
             
         for member in members:
-            user = await guild.fetch_member(member.id)
-            await user.move_to(channel)
-            
+            try:
+                user = await guild.fetch_member(member.id)
+                await user.move_to(channel)
+            except:
+                continue
+                
     @commands.slash_command(name="kick", guild_ids=guild_ids, description="Выгоняет пользователя с сервера с возможностью возвращения по приглашению.")
     @discord.default_permissions(administrator=True)
     @option("user", discord.Member, description="Пользователь на выбор, если нет в списке, можно использовать идентификатор пользователя.")
