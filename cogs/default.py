@@ -299,6 +299,20 @@ class Default(commands.Cog):
                             )
         await ctx.respond(embed=embed)
 
+    @commands.slash_command(name="guess_number", description="Игра в угадай число.")
+    @option("max_number", int, description="Максимальное загадываемое число.")
+    @option("number_of_tries", int, description="Количество попыток.")
+    async def _guess_number(self, ctx: ApplicationContext, max_number: int, number_of_tries: int):
+        if max_number <= 0:
+            await ctx.respond("Максимальное число не может быть меньше нуля.")
+            return
+        
+        if number_of_tries <= 0:
+            await ctx.respond("Количество попыток не может быть меньше нуля.")
+            return
+        
+        await ctx.respond(view=GuessNumberView(ctx, max_number, number_of_tries))
+
 class MineSweeperView(discord.ui.View):
     """
     Класс кнопок для игры в Сапера
@@ -1106,3 +1120,115 @@ class BlackjackView(discord.ui.View):
         self.children.clear()
 
         await interaction.response.edit_message(embed=embed, view=self)
+
+
+class GuessNumberView(discord.ui.View):
+    """
+    Класс кнопок для игры Угадай Число
+
+    Методы
+    ------
+    more_callback(button: discord.ui.Button, interaction: discord.Interaction)
+        Обработка кнопки "Больше"
+    gotcha_callback(button: discord.ui.Button, interaction: discord.Interaction)
+        Обработка кнопки "Попал", вывод сообщения о победе бота
+    less_callback(button: discord.ui.Button, interaction: discord.Interaction)
+        Обработка кнопки "Меньше"
+    _guess(interaction=None, ctx=None)
+        Процесс "угадывания" числа игрока, вывод сообщений
+    """
+    
+    def __init__(self, ctx, max_number, number_of_tries):
+        """ Первичная инициализация игры.
+        """
+
+        super().__init__()
+        
+        self.ctx = ctx
+        self.max_number = max_number
+        self.min_number = 0
+        self.number_of_tries = number_of_tries
+        self._guess()
+        
+    @discord.ui.button(style=discord.ButtonStyle.green, label="Больше", emoji="🢁")
+    async def _more_callback(self, button: discord.ui.Button, interaction: discord.Interaction):
+        """Число игрока больше
+
+        Параметры
+        ----------
+        button : discord.ui.Button
+            Нажатая кнопка
+        interaction : discord.Interaction
+            Объект взаимодействия с кнопкой
+        """
+        
+        self.min_number = self.current_number
+        await self._guess(interaction)
+        
+    @discord.ui.button(style=discord.ButtonStyle.gray, label="Попал", emoji="🎯")
+    async def _gotcha_callback(self, button: discord.ui.Button, interaction: discord.Interaction):
+        """Найдено верное число
+
+        Параметры
+        ----------
+        button : discord.ui.Button
+            Нажатая кнопка
+        interaction : discord.Interaction
+            Объект взаимодействия с кнопкой
+        """
+        
+        embed = discord.Embed(title=f"ez",
+                              color=discord.Color.dark_magenta())
+        embed.add_field(name=f"Число: {self.current_number}", 
+                        inline=False)
+        embed.add_field(name=f"Осталось попыток: {self.number_of_tries}", 
+                        inline=False)
+        
+        await interaction.response.edit_message(embed=embed, view=None)
+        
+    @discord.ui.button(style=discord.ButtonStyle.gray, label="Меньше", emoji="🢃")
+    async def less_callback(self, button: discord.ui.Button, interaction: discord.Interaction):
+        """Число игрока меньше
+
+        Параметры
+        ----------
+        button : discord.ui.Button
+            Нажатая кнопка
+        interaction : discord.Interaction
+            Объект взаимодействия с кнопкой
+        """
+        
+        self.max_number = self.current_number
+        await self._guess(interaction)
+        
+    async def _guess(self, interaction=None, ctx=None):
+        """Число игрока меньше
+
+        Параметры
+        ----------
+        ctx : ApplicationContext
+            Контекст взаимодействия с командой бота
+        interaction : discord.Interaction
+            Объект взаимодействия с кнопкой
+        """
+        
+        embed = None
+        
+        if self.number_of_tries < 0:
+            embed = discord.Embed(title=f"Сложно, сложно, невозможно",
+                                  color=discord.Color.dark_magenta())
+        else:
+            self.current_number = random.randint(self.min_number, self.max_number)
+            self.number_of_tries -= 1
+            
+            embed = discord.Embed(title=f"Твое число {self.current_number}?",
+                                  color=discord.Color.dark_magenta())
+            embed.add_field(name=f"Осталось попыток: {self.number_of_tries}", 
+                            inline=False)
+        
+        if interaction is None:
+            await ctx.respond(embed=embed, view=self)
+            ctx = None
+        else:
+            await interaction.response.edit_message(embed=embed, view=self)
+            
