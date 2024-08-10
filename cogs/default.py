@@ -303,6 +303,8 @@ class Default(commands.Cog):
     @option("max_number", int, description="Максимальное загадываемое число.")
     @option("number_of_tries", int, description="Количество попыток.")
     async def _guess_number(self, ctx: ApplicationContext, max_number: int, number_of_tries: int):
+        #TODO Проверить работу игры
+        
         if max_number <= 0:
             await ctx.respond("Максимальное число не может быть меньше нуля.")
             return
