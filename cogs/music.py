@@ -123,7 +123,8 @@ class Music(commands.Cog):
                 login=vk_login,
                 password=vk_password,
                 auth_handler=self._two_factor,
-                captcha_handler=self._captcha_handler
+                captcha_handler=self._captcha_handler,
+                app_id=6287487
             )
 
             try:
