@@ -15,6 +15,7 @@ from discord.ext import commands
 from datetime import date, datetime, timedelta
 from youtubesearchpython import *
 from dotenv import load_dotenv
+from threading import Timer
 
 
 def setup(bot: discord.bot.Bot):
@@ -88,7 +89,7 @@ class Music(commands.Cog):
     
     guild_ids = []
 
-    def __init__(self, bot: discord.bot.Bot):
+    def __init__(self, bot: discord.bot.Bot, use_VK=False):
         """
         Параметры
         ---------
@@ -112,29 +113,33 @@ class Music(commands.Cog):
             self.guild_ids.append(guild.id)
 
         load_dotenv()
-        vk_login = os.getenv('vk_login')
-        vk_password = os.getenv('vk_password')
         self.cookie = os.getenv('cookie')
         self.ffmpeg_path = os.getenv('ffmpeg_path')
         self.valid_channel_id = int(os.getenv('valid_channel_id'))
+        
+        if use_VK:
+            vk_login = os.getenv('vk_login')
+            vk_password = os.getenv('vk_password')
 
-        if vk_login is not None and vk_password is not None:
-            vk_session = vk_api.VkApi(
-                login=vk_login,
-                password=vk_password,
-                auth_handler=self._two_factor,
-                captcha_handler=self._captcha_handler,
-                app_id=6287487
-            )
+            if vk_login is not None and vk_password is not None: 
+                vk_session = vk_api.VkApi(
+                    login=vk_login,
+                    password=vk_password,
+                    auth_handler=self._two_factor,
+                    captcha_handler=self._captcha_handler,
+                    app_id=2685278
+                )
 
-            try:
-                vk_session.auth(token_only=True)
-                self.vk_audio = audio.VkAudio(vk_session)
+                try:
+                    vk_session.auth(token_only=True)
+                    self.vk_audio = audio.VkAudio(vk_session)
 
-                logging.info("Connected to VK")
-                self.is_vk_connected = True
-            except vk_api.AuthError as err:
-                logging.warning("Not connected to VK. Error: ", err)
+                    logging.info("Connected to VK")
+                    self.is_vk_connected = True
+                except vk_api.AuthError as err:
+                    logging.warning("Not connected to VK. Error: ", err)
+        else:
+            logging.warning("Not connected to VK.")
 
     def _captcha_handler(self, captcha):
         """Обработчик капчи ВКонтакте
@@ -160,7 +165,7 @@ class Music(commands.Cog):
             Код двухфакторной аутентификации и True, чтобы устройство
             было сохранено в список доверенных
         """
-
+        
         code = input('VK code: ')
         return code, True
 
@@ -266,7 +271,7 @@ class Music(commands.Cog):
         if reason == "order":
             await channel.send(embed=embed)
         elif reason == "playing":
-            self.current_view = MusicView(self)
+            self.current_view = MusicView(self, self.valid_channel_id)
             await channel.send(embed=embed, view=self.current_view)
 
     def _start_message(self) -> str:
@@ -471,7 +476,7 @@ class Music(commands.Cog):
 
         channel = self.bot.get_channel(self.valid_channel_id)
 
-        ydl_opts = {'format': 'bestaudio', 'cookiefile': self.cookie,
+        ydl_opts = {'format': 'best', 'cookiefile': self.cookie,
                     'cachedir': False}
 
         await ctx.respond(self._start_message())
@@ -932,7 +937,7 @@ class MusicView(discord.ui.View):
         Включение или выключение повтора трека
     """
 
-    def __init__(self, music: Music):
+    def __init__(self, music: Music, valid_channel_id):
         """
         Параметры
         ---------
@@ -942,6 +947,7 @@ class MusicView(discord.ui.View):
 
         super().__init__()
         self.music = music
+        self.valid_channel_id = valid_channel_id
 
     async def _is_playing(self, interaction: discord.Interaction) -> bool:
         """Проверяет играет ли бот в голосовом канале.

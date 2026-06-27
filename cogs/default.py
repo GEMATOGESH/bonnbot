@@ -150,7 +150,7 @@ class Default(commands.Cog):
         if not num:
             message += "Выпал **орел**!"
         elif num:
-            message += "Выпала **режка**!"
+            message += "Выпала **решка**!"
         else:
             message += "Выпало... ребро?"
 
@@ -314,6 +314,35 @@ class Default(commands.Cog):
             return
         
         await ctx.respond(view=GuessNumberView(ctx, max_number, number_of_tries))
+
+    @commands.slash_command(name="dnd_stats", description="Ролит статы для ДНД.")
+    async def _dnd_stats(self, ctx: ApplicationContext):
+        msg = ""
+        
+        while True:
+            stats = []
+            
+            for _ in range(0, 6):
+                buf_stats = []
+                for _ in range(0, 4):
+                    buf_stats.append(random.randint(1, 6))
+                
+                buf_stats.sort()
+                buf_stats.pop(0)
+            
+                stats.append(sum(buf_stats))
+                
+            checker = sum(stats)
+            
+            res = " ".join(str(buf) for buf in stats)
+            msg += f"Получилось:\n{res}\nОбщая сумма: {checker}\n"
+            
+            if checker >= 72:
+                break
+            else:
+                msg += "Но этого НЕДОСТАТОЧНО!\n---------------------\n"
+        
+        await ctx.respond(msg[:-1])
 
 class MineSweeperView(discord.ui.View):
     """
